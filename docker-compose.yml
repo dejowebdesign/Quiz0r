@@ -21,12 +21,6 @@ services:
       # SQLite
       DATABASE_URL: file:./prisma/data/quiz.db
 
-      # OpenAI
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-
-      # FreeLLMAPI
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
-
     volumes:
       - quiz0r-db:/app/prisma/data
       - quiz0r-uploads:/app/public/uploads
