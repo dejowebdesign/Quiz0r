@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 // GET /api/quizzes/[quizId]/translations - Get translation status for all languages
 export async function GET(
   request: Request,
-  { params }: { params: { quizId: string } }
+  { params }: { params: Promise<{ quizId: string }> }
 ) {
+  const { quizId } = await params;
   try {
-    const { quizId } = params;
 
     const statuses = await getQuizTranslationStatus(quizId);
 

@@ -1,5 +1,4 @@
 import { Server, Socket } from "socket.io";
-import { PrismaClient } from "@prisma/client";
 import {
   GameState,
   PlayerInfo,
@@ -25,8 +24,7 @@ import {
   generateAvatarColor,
 } from "@/lib/scoring";
 import { parseTheme } from "@/lib/theme";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 interface ActiveGame {
   gameCode: string;

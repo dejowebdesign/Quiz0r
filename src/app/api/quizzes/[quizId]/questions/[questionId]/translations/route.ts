@@ -6,10 +6,10 @@ export const dynamic = "force-dynamic";
 // GET /api/quizzes/[quizId]/questions/[questionId]/translations - Get all translations for a question
 export async function GET(
   request: Request,
-  { params }: { params: { quizId: string; questionId: string } }
+  { params }: { params: Promise<{ quizId: string; questionId: string }> }
 ) {
+  const { questionId } = await params;
   try {
-    const { questionId } = params;
 
     // Fetch question with translations
     const question = await prisma.question.findUnique({

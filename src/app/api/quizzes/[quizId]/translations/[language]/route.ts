@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 // DELETE /api/quizzes/[quizId]/translations/[language] - Delete all translations for a language
 export async function DELETE(
   request: Request,
-  { params }: { params: { quizId: string; language: string } }
+  { params }: { params: Promise<{ quizId: string; language: string }> }
 ) {
+  const { quizId, language } = await params;
   try {
-    const { quizId, language } = params;
 
     // Validate language
     if (!(language in SupportedLanguages)) {

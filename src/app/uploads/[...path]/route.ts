@@ -5,14 +5,15 @@ import path from "path";
 // Fallback handler to serve uploaded files even when Next static serving misses.
 export async function GET(
   _req: Request,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const { path: filePathSegments } = await params;
   try {
     const filePath = path.join(
       process.cwd(),
       "public",
       "uploads",
-      ...params.path
+      ...filePathSegments
     );
 
     const data = await readFile(filePath);
@@ -35,7 +36,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.warn("[uploads-route] File not found", params.path, error);
+    console.warn("[uploads-route] File not found", filePathSegments, error);
     return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 }

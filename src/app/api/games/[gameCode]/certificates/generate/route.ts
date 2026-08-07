@@ -17,13 +17,13 @@ import { QuizTheme, DEFAULT_THEME } from "@/types/theme";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { gameCode: string } }
+  { params }: { params: Promise<{ gameCode: string }> }
 ) {
   try {
     // Parse request
     const body = (await request.json()) as CertificateRequest;
     const { type, playerId } = body;
-    const { gameCode } = params;
+    const { gameCode } = await params;
 
     // Fetch game data
     const gameData = await prisma.gameSession.findUnique({

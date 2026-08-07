@@ -5,8 +5,9 @@ import path from "path";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { gameCode: string } }
+  { params }: { params: Promise<{ gameCode: string }> }
 ) {
+  const { gameCode } = await params;
   try {
     const body = await request.json();
     const { type, playerId } = body;
@@ -14,7 +15,7 @@ export async function POST(
     // Find certificate
     const certificate = await prisma.certificate.findFirst({
       where: {
-        gameSession: { gameCode: params.gameCode.toUpperCase() },
+        gameSession: { gameCode: gameCode.toUpperCase() },
         type,
         playerId: type === "player" ? playerId : null,
       },

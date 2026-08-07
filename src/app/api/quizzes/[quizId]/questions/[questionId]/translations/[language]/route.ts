@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 // PUT /api/quizzes/[quizId]/questions/[questionId]/translations/[language] - Update manual translation
 export async function PUT(
   request: Request,
-  { params }: { params: { quizId: string; questionId: string; language: string } }
+  { params }: { params: Promise<{ quizId: string; questionId: string; language: string }> }
 ) {
+  const { questionId, language } = await params;
   try {
-    const { questionId, language } = params;
     const body = await request.json();
 
     // Validate language
@@ -107,10 +107,10 @@ export async function PUT(
 // DELETE /api/quizzes/[quizId]/questions/[questionId]/translations/[language] - Delete translation
 export async function DELETE(
   request: Request,
-  { params }: { params: { quizId: string; questionId: string; language: string } }
+  { params }: { params: Promise<{ quizId: string; questionId: string; language: string }> }
 ) {
+  const { questionId, language } = await params;
   try {
-    const { questionId, language } = params;
 
     // Validate language
     if (!(language in SupportedLanguages)) {

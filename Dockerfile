@@ -42,11 +42,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./
 COPY --from=builder /app/server.ts ./
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/next.config.mjs ./
-COPY --from=builder /app/tailwind.config.ts ./
 COPY --from=builder /app/postcss.config.mjs ./
 
 # Create data directory for SQLite

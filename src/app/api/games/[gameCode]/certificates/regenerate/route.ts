@@ -3,8 +3,9 @@ import { CertificateService } from "@/lib/certificate-service";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { gameCode: string } }
+  { params }: { params: Promise<{ gameCode: string }> }
 ) {
+  const { gameCode } = await params;
   try {
     const body = await request.json();
     const { certificateIds } = body;

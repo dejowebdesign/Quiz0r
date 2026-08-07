@@ -54,7 +54,7 @@ function isLocalhostOnlyRoute(pathname: string): boolean {
   return LOCALHOST_ONLY_PATTERNS.some((pattern) => pathname.startsWith(pattern));
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow all static files and Next.js internals

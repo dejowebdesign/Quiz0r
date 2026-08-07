@@ -3,12 +3,11 @@ import { CertificateService } from "@/lib/certificate-service";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { gameCode: string } }
+  { params }: { params: Promise<{ gameCode: string }> }
 ) {
+  const { gameCode } = await params;
   try {
-    const status = await CertificateService.getCertificateStatus(
-      params.gameCode
-    );
+    const status = await CertificateService.getCertificateStatus(gameCode);
     return NextResponse.json(status);
   } catch (error) {
     console.error("Failed to fetch certificate status:", error);

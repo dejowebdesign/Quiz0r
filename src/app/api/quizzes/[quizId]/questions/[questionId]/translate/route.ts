@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 // POST /api/quizzes/[quizId]/questions/[questionId]/translate - Translate single question or section
 export async function POST(
   request: Request,
-  { params }: { params: { quizId: string; questionId: string } }
+  { params }: { params: Promise<{ quizId: string; questionId: string }> }
 ) {
+  const { questionId } = await params;
   try {
-    const { questionId } = params;
     const body = await request.json();
     const { targetLanguage } = body;
 

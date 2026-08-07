@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 // POST /api/quizzes/[quizId]/translate - Translate entire quiz to target language
 export async function POST(
   request: Request,
-  { params }: { params: { quizId: string } }
+  { params }: { params: Promise<{ quizId: string }> }
 ) {
+  const { quizId } = await params;
   try {
-    const { quizId } = params;
     const body = await request.json();
     const { targetLanguage } = body;
 

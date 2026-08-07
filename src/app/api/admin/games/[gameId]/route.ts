@@ -3,11 +3,12 @@ import { prisma } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
+  const { gameId } = await params;
   try {
     const game = await prisma.gameSession.findUnique({
-      where: { id: params.gameId },
+      where: { id: gameId },
       include: {
         quiz: {
           select: {
@@ -70,11 +71,12 @@ export async function GET(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { gameId: string } }
+  { params }: { params: Promise<{ gameId: string }> }
 ) {
+  const { gameId } = await params;
   try {
     const game = await prisma.gameSession.findUnique({
-      where: { id: params.gameId },
+      where: { id: gameId },
       select: { status: true }
     });
 
@@ -90,7 +92,7 @@ export async function DELETE(
     }
 
     await prisma.gameSession.delete({
-      where: { id: params.gameId }
+      where: { id: gameId }
     });
 
     return Response.json({ success: true });
