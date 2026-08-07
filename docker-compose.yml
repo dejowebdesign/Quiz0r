@@ -1,21 +1,26 @@
 services:
   quiz0r:
-    image: quiz0r:latest
     container_name: quiz0r
+
     build:
       context: .
       target: runner
+
+    image: quiz0r:latest
+
+    restart: unless-stopped
+
     ports:
       - "18081:3000"
-    volumes:
-      # Persist SQLite database
-      - quiz-data:/app/prisma/data
-      # Persist uploaded images (if used)
-      - quiz-uploads:/app/public/uploads
+
     environment:
-      - NODE_ENV=production
-      - DATABASE_URL=file:./data/quiz.db
-    restart: unless-stopped
+      NODE_ENV: production
+      DATABASE_URL: file:./prisma/data/quiz.db
+      TZ: Europe/Berlin
+
+    volumes:
+      - quiz-data:/app/prisma/data
+      - quiz-uploads:/app/public/uploads
 
 volumes:
   quiz-data:
