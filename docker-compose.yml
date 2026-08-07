@@ -1,37 +1,22 @@
-version: "3.9"
-
 services:
   quiz0r:
-    container_name: quiz0r
-
     image: quiz0r:latest
-
+    container_name: quiz0r
     build:
       context: .
       target: runner
-
-    restart: unless-stopped
-
     ports:
       - "18081:3000"
-
-    environment:
-      NODE_ENV: production
-
-      # SQLite
-      DATABASE_URL: file:./prisma/data/quiz.db
-
     volumes:
-      - quiz0r-db:/app/prisma/data
-      - quiz0r-uploads:/app/public/uploads
-
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      # Persist SQLite database
+      - quiz-data:/app/prisma/data
+      # Persist uploaded images (if used)
+      - quiz-uploads:/app/public/uploads
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./data/quiz.db
+    restart: unless-stopped
 
 volumes:
-  quiz0r-db:
-  quiz0r-uploads:
+  quiz-data:
+  quiz-uploads:
