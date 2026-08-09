@@ -15,7 +15,7 @@ services:
 
     environment:
       NODE_ENV: production
-      DATABASE_URL: file:./prisma/data/quiz.db
+      DATABASE_URL: file:./data/quiz.db
       TZ: Europe/Berlin
 
     volumes:
