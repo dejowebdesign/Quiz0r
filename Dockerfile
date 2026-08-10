@@ -58,7 +58,7 @@ USER nextjs
 EXPOSE 3000
 
 ENV PORT=3000
-ENV DATABASE_URL="file:./data/quiz.db"
+ENV DATABASE_URL="file:./prisma/data/quiz.db"
 
 # Start the server
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]

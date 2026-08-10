@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  const databaseUrl = process.env.DATABASE_URL ?? "file:./data/quiz.db";
+  const databaseUrl = process.env.DATABASE_URL ?? "file:./prisma/data/quiz.db";
   const adapter = new PrismaLibSql({ url: databaseUrl });
   return new PrismaClient({ adapter });
 }
