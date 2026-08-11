@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateThemeJson } from "@/lib/theme";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{ themeId: string }>;
 }
 
+// GET /api/themes/[themeId] - Fetch a theme (admin only)
 export async function GET(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { themeId } = await context.params;
 
@@ -25,7 +29,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
+// PUT /api/themes/[themeId] - Update a theme (admin only)
 export async function PUT(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { themeId } = await context.params;
     const body = await request.json();
@@ -69,7 +76,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
+// DELETE /api/themes/[themeId] - Delete a theme (admin only)
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { themeId } = await context.params;
 

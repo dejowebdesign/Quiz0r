@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateThemeJson } from "@/lib/theme";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{ quizId: string }>;
 }
 
-// GET - Fetch quiz theme
+// GET - Fetch quiz theme (admin only)
 export async function GET(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await context.params;
 
@@ -34,8 +37,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
-// PUT - Update quiz theme
+// PUT - Update quiz theme (admin only)
 export async function PUT(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await context.params;
     const body = await request.json();
@@ -72,8 +77,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
-// DELETE - Remove quiz theme
+// DELETE - Remove quiz theme (admin only)
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await context.params;
 

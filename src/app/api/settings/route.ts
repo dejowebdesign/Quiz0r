@@ -1,14 +1,26 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { startTunnel, stopTunnel } from "@/lib/tunnel";
+import { requireAdmin } from "@/lib/auth";
 
 // Force dynamic - reads from DB
 export const dynamic = "force-dynamic";
 
-// GET /api/settings - Get settings and tunnel status
-export async function GET() {
+function maskSecret(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (value.length <= 12) return "••••••••";
+  return `${value.slice(0, 8)}...${value.slice(-4)}`;
+}
+
+// GET /api/settings - Get settings and tunnel status (admin only).
+// Returns masked secrets only. Raw secret values are never sent to clients,
+// even authenticated ones, to limit the blast radius of a leaked session.
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
-    // Get ngrok token (masked)
+    // Get ngrok token
     const tokenSetting = await prisma.setting.findUnique({
       where: { key: "ngrok_token" },
     });
@@ -38,45 +50,25 @@ export async function GET() {
     });
 
     const hasToken = !!tokenSetting?.value;
-    const maskedToken = tokenSetting?.value
-      ? `${tokenSetting.value.slice(0, 8)}...${tokenSetting.value.slice(-4)}`
-      : null;
-    const rawToken = tokenSetting?.value || null;
     const tunnelUrl = tunnelSetting?.value || null;
 
     const hasShortioApiKey = !!shortioApiKeySetting?.value;
-    const maskedShortioApiKey = shortioApiKeySetting?.value
-      ? `${shortioApiKeySetting.value.slice(0, 8)}...${shortioApiKeySetting.value.slice(-4)}`
-      : null;
-    const rawShortioApiKey = shortioApiKeySetting?.value || null;
     const shortioDomain = shortioDomainSetting?.value || null;
 
     const hasOpenaiApiKey = !!openaiApiKeySetting?.value;
-    const maskedOpenaiApiKey = openaiApiKeySetting?.value
-      ? `${openaiApiKeySetting.value.slice(0, 8)}...${openaiApiKeySetting.value.slice(-4)}`
-      : null;
-    const rawOpenaiApiKey = openaiApiKeySetting?.value || null;
     const hasUnsplashApiKey = !!unsplashApiKeySetting?.value;
-    const maskedUnsplashApiKey = unsplashApiKeySetting?.value
-      ? `${unsplashApiKeySetting.value.slice(0, 8)}...${unsplashApiKeySetting.value.slice(-4)}`
-      : null;
-    const rawUnsplashApiKey = unsplashApiKeySetting?.value || null;
 
     return NextResponse.json({
-      ngrokToken: maskedToken,
-      ngrokTokenRaw: rawToken,
+      ngrokToken: maskSecret(tokenSetting?.value),
       hasToken,
       tunnelRunning: !!tunnelUrl,
       tunnelUrl,
-      shortioApiKey: maskedShortioApiKey,
-      shortioApiKeyRaw: rawShortioApiKey,
+      shortioApiKey: maskSecret(shortioApiKeySetting?.value),
       hasShortioApiKey,
       shortioDomain,
-      openaiApiKey: maskedOpenaiApiKey,
-      openaiApiKeyRaw: rawOpenaiApiKey,
+      openaiApiKey: maskSecret(openaiApiKeySetting?.value),
       hasOpenaiApiKey,
-      unsplashApiKey: maskedUnsplashApiKey,
-      unsplashApiKeyRaw: rawUnsplashApiKey,
+      unsplashApiKey: maskSecret(unsplashApiKeySetting?.value),
       hasUnsplashApiKey,
     });
   } catch (error) {
@@ -88,8 +80,10 @@ export async function GET() {
   }
 }
 
-// POST /api/settings - Save settings
-export async function POST(request: Request) {
+// POST /api/settings - Save settings (admin only)
+export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     // Normalize incoming values to avoid persisting accidental whitespace/newlines

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, FileQuestion, Gamepad2, Play, Settings, Home, Palette } from "lucide-react";
+import { Menu, X, FileQuestion, Gamepad2, Play, Settings, Home, Palette, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 import { LanguageSelector } from "@/components/ui/language-selector";
@@ -55,8 +55,19 @@ const navLinks = [
 
 export function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
   const { t } = useTranslation();
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // proceed to redirect even if the call failed
+    }
+    window.location.href = "/admin/login";
+  }
 
   const isActive = (href: string) => {
     if (href === "/admin") {
@@ -105,6 +116,16 @@ export function NavHeader() {
           <div className="h-6 w-px bg-border mx-2" />
           <DarkModeToggle showLabel={false} />
           <LanguageSelector />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            aria-label={t("nav.logout") || "Logout"}
+            title={t("nav.logout") || "Logout"}
+          >
+            <LogOut className="w-4 h-4" />
+          </Button>
         </nav>
 
         {/* Mobile menu button */}
@@ -152,6 +173,21 @@ export function NavHeader() {
                 </Link>
               );
             })}
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="flex w-full items-center gap-3 px-3 py-3 rounded-lg transition-colors hover:bg-muted"
+            >
+              <div className="p-2 rounded-lg bg-muted">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="font-medium text-foreground">
+                  {t("nav.logout") || "Logout"}
+                </div>
+              </div>
+            </button>
           </div>
         </div>
       )}

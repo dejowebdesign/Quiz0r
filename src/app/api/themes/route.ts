@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { validateThemeJson } from "@/lib/theme";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+// GET /api/themes - List themes (admin only)
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const themes = await prisma.theme.findMany({
       orderBy: { updatedAt: "desc" },
@@ -17,7 +21,10 @@ export async function GET() {
   }
 }
 
+// POST /api/themes - Create theme (admin only)
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const theme = body.theme as string | undefined;

@@ -18,10 +18,20 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   });
 
+  // Socket.io CORS: never allow origin "*". Reflect the request origin when
+  // credentials are enabled so the admin session cookie is sent. The allowed
+  // origin can be pinned via the SOCKET_IO_ORIGIN env var for stricter setups.
+  const configuredOrigin = process.env.SOCKET_IO_ORIGIN;
+  const corsOrigin: string | boolean =
+    configuredOrigin && configuredOrigin.trim() !== ""
+      ? configuredOrigin.trim()
+      : true; // reflect request origin (same-origin deployments)
+
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: corsOrigin,
       methods: ["GET", "POST"],
+      credentials: true,
     },
     transports: ["websocket", "polling"],
   });

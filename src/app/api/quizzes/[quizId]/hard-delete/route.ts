@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
@@ -8,8 +9,9 @@ interface RouteParams {
 /**
  * POST /api/quizzes/[quizId]/hard-delete - Permanently delete quiz
  *
- * WARNING: This endpoint is intended for testing only.
- * It performs a hard delete (permanent removal) of the quiz and all related data.
+ * NOTE: This endpoint performs a hard delete (permanent removal) of the quiz
+ * and all related data. It is protected by admin authentication and must
+ * remain admin-only even though it is occasionally used for testing.
  *
  * Cascade deletes:
  * - Questions (via onDelete: Cascade)
@@ -24,6 +26,8 @@ interface RouteParams {
  * - Certificates (via GameSession cascade)
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
 

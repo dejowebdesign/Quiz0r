@@ -13,8 +13,11 @@ import { randomUUID } from "crypto";
 import { ExportedQuiz } from "@/types/export";
 import { sanitizeQuizData } from "@/lib/sanitize";
 import { validateQuizStructure } from "@/lib/validate-import";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     // 1. Parse uploaded file
     const formData = await request.formData();

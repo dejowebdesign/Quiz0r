@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { translateEntireQuiz } from "@/lib/openai-translate";
 import { SupportedLanguages, type LanguageCode } from "@/types";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/quizzes/[quizId]/translate - Translate entire quiz to target language
+// POST /api/quizzes/[quizId]/translate - Translate entire quiz to target language (admin only)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ quizId: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { quizId } = await params;
   try {
     const body = await request.json();

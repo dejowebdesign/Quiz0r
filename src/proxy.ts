@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Cookie name duplicated as a literal because the proxy runs in the edge
+// runtime and cannot import the full auth module (which pulls in Prisma and
+// Node's crypto). Keep in sync with ADMIN_COOKIE_NAME in src/lib/auth.ts.
+const ADMIN_COOKIE_NAME = "quiz0r_admin_session";
+
 // Routes that should be accessible via ngrok/external access
 const PUBLIC_ROUTES = [
   "/play",           // Game code entry page
@@ -54,6 +59,35 @@ function isLocalhostOnlyRoute(pathname: string): boolean {
   return LOCALHOST_ONLY_PATTERNS.some((pattern) => pathname.startsWith(pattern));
 }
 
+/** Whether the admin session cookie is present (non-empty). Edge-runtime
+ *  friendly: this only checks presence. Validity is confirmed server-side by
+ *  requireAdmin / validateSessionFromCookieHeader in the route handlers and
+ *  Socket.io connection. */
+function hasAdminSession(request: NextRequest): boolean {
+  const cookieHeader = request.headers.get("cookie") || "";
+  const prefix = `${ADMIN_COOKIE_NAME}=`;
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) {
+      const value = trimmed.slice(prefix.length);
+      return value.length > 0;
+    }
+  }
+  return false;
+}
+
+/** Admin-only API prefixes. A missing session cookie returns 401 here; a
+ *  present-but-invalid cookie is still rejected by requireAdmin in the route. */
+function isAdminApiRoute(pathname: string): boolean {
+  return (
+    pathname.startsWith("/api/quizzes") ||
+    pathname.startsWith("/api/themes") ||
+    pathname.startsWith("/api/settings") ||
+    pathname === "/api/upload" ||
+    pathname.startsWith("/api/admin/")
+  );
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -98,6 +132,33 @@ export function proxy(request: NextRequest) {
         }
       );
     }
+  }
+
+  // Admin-only pages: redirect unauthenticated users to the login page.
+  // (External requests to these already returned 403 above.)
+  // The login page itself is exempt so we don't redirect to it forever.
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (pathname === "/admin/login") return NextResponse.next();
+    if (hasAdminSession(request)) return NextResponse.next();
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/admin/login";
+    loginUrl.search = "";
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Host pages: redirect unauthenticated users to the login page.
+  if (pathname === "/host" || pathname.startsWith("/host/")) {
+    if (hasAdminSession(request)) return NextResponse.next();
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/admin/login";
+    loginUrl.search = "";
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Admin-only API routes: reject without a session cookie.
+  if (isAdminApiRoute(pathname)) {
+    if (hasAdminSession(request)) return NextResponse.next();
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   return NextResponse.next();

@@ -1,10 +1,14 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
+// GET /api/admin/games/[gameId] - Get game session details (admin only)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ gameId: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { gameId } = await params;
   try {
     const game = await prisma.gameSession.findUnique({
@@ -73,6 +77,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ gameId: string }> }
 ) {
+  const auth = await requireAdmin(_request);
+  if (!auth.ok) return auth.response;
   const { gameId } = await params;
   try {
     const game = await prisma.gameSession.findUnique({

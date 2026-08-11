@@ -129,9 +129,11 @@ export function useSocket({
       return;
     }
 
-    // Initialize socket
+    // Initialize socket. withCredentials sends the admin session cookie so
+    // the server can authorize host events (player connections don't need it).
     const socket: TypedSocket = io({
       transports: ["websocket", "polling"],
+      withCredentials: true,
     });
 
     socketRef.current = socket;

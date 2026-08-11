@@ -7,6 +7,9 @@ export function createMockSocket(id: string) {
   return {
     id,
     emissions,
+    // Mimic Socket.io's socket.data; tests that exercise host handlers set
+    // isHostAuthorized = true to simulate an authenticated host connection.
+    data: {} as Record<string, unknown>,
     join: vi.fn(),
     leave: vi.fn(),
     on: vi.fn(),

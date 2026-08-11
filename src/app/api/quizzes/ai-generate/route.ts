@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuizWithAI } from "@/lib/openai-quiz-generator";
+import { requireAdmin } from "@/lib/auth";
 
+// POST /api/quizzes/ai-generate - Generate a quiz with AI (admin only)
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const {

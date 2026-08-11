@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { getQuizTranslationStatus } from "@/lib/openai-translate";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/quizzes/[quizId]/translations - Get translation status for all languages
+// GET /api/quizzes/[quizId]/translations - Get translation status for all languages (admin only)
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ quizId: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { quizId } = await params;
   try {
 

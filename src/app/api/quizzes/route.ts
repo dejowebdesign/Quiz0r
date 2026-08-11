@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
-// GET /api/quizzes - List all quizzes
-export async function GET() {
+// GET /api/quizzes - List all quizzes (admin only)
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const quizzes = await prisma.quiz.findMany({
       where: { isActive: true },
@@ -66,8 +69,10 @@ export async function GET() {
   }
 }
 
-// POST /api/quizzes - Create a new quiz
+// POST /api/quizzes - Create a new quiz (admin only)
 export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { title, description } = body;

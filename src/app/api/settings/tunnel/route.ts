@@ -1,17 +1,23 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { startTunnel, stopTunnel, getTunnelUrl, isTunnelRunning } from "@/lib/tunnel";
+import { requireAdmin } from "@/lib/auth";
 
-// GET /api/settings/tunnel - Get tunnel status
-export async function GET() {
+// GET /api/settings/tunnel - Get tunnel status (admin only)
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   return NextResponse.json({
     running: isTunnelRunning(),
     url: getTunnelUrl(),
   });
 }
 
-// POST /api/settings/tunnel - Start tunnel
-export async function POST() {
+// POST /api/settings/tunnel - Start tunnel (admin only)
+export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     // Get token from database
     const tokenSetting = await prisma.setting.findUnique({
@@ -34,8 +40,10 @@ export async function POST() {
   }
 }
 
-// DELETE /api/settings/tunnel - Stop tunnel
-export async function DELETE() {
+// DELETE /api/settings/tunnel - Stop tunnel (admin only)
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     await stopTunnel();
     return NextResponse.json({ success: true });

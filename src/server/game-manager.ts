@@ -25,6 +25,7 @@ import {
 } from "@/lib/scoring";
 import { parseTheme } from "@/lib/theme";
 import { prisma } from "@/lib/db";
+import { validateSessionFromCookieHeader } from "@/lib/auth";
 
 interface ActiveGame {
   gameCode: string;
@@ -61,6 +62,14 @@ export class GameManager {
   handleConnection(socket: TypedSocket) {
     console.log(`Client connected: ${socket.id}`);
 
+    // Validate the admin session from the handshake cookie. Host events are
+    // only honored for sockets with a valid admin session; players never need
+    // host privileges. The flag starts false and is set once the authorization
+    // promise (stored on socket.data) resolves.
+    socket.data.isHostAuthorized = false;
+    socket.data.hostUsername = null;
+    socket.data.authPromise = this.authorizeSocket(socket);
+
     // Host events
     socket.on("host:joinRoom", (data) => this.handleHostJoin(socket, data));
     socket.on("host:startGame", (data) => this.handleStartGame(socket, data));
@@ -88,7 +97,53 @@ export class GameManager {
     socket.on("disconnect", () => this.handleDisconnect(socket));
   }
 
+  /** Validate the admin session cookie from the Socket.io handshake. */
+  private async authorizeSocket(socket: TypedSocket): Promise<void> {
+    try {
+      const raw =
+        socket.handshake.headers.cookie ||
+        socket.handshake.headers.Cookie ||
+        null;
+      // Headers can be string | string[] | undefined; collapse to a string.
+      const cookieHeader: string | null = Array.isArray(raw)
+        ? raw.join("; ")
+        : (raw as string | null);
+      const user = await validateSessionFromCookieHeader(cookieHeader);
+      if (user) {
+        socket.data.isHostAuthorized = true;
+        socket.data.hostUsername = user.username;
+      }
+    } catch (err) {
+      console.error(`[Auth] Socket ${socket.id} session validation failed:`, err);
+    }
+  }
+
+  /**
+   * Guard for host-only events. Awaits the async handshake authorization so
+   * host events emitted immediately after connect are still gated correctly.
+   * Returns true if the socket carries a valid admin session; otherwise logs
+   * a warning and returns false. Tests that invoke handlers directly may not
+   * run handleConnection, so a missing authPromise is treated as already
+   * resolved (the isHostAuthorized flag is the source of truth).
+   */
+  private async requireHostSocket(socket: TypedSocket): Promise<boolean> {
+    const promise = socket.data.authPromise as Promise<void> | undefined;
+    if (promise) {
+      try {
+        await promise;
+      } catch {
+        // authorization failure leaves isHostAuthorized false
+      }
+    }
+    if (socket.data.isHostAuthorized) return true;
+    console.warn(
+      `[Auth] Unauthorized host event from socket ${socket.id} (no admin session)`
+    );
+    return false;
+  }
+
   private async handleHostJoin(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     const { gameCode } = data;
     const upperCode = gameCode.toUpperCase();
 
@@ -287,6 +342,7 @@ export class GameManager {
   }
 
   private async handleStartGame(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     const { gameCode } = data;
     const upperCode = gameCode.toUpperCase();
 
@@ -367,6 +423,7 @@ export class GameManager {
   }
 
   private async handleNextQuestion(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     const game = this.activeGames.get(upperCode);
     if (game?.pendingReveal) {
@@ -377,6 +434,7 @@ export class GameManager {
   }
 
   private async handleSkipTimer(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     const game = this.activeGames.get(upperCode);
     if (!game || game.status !== "QUESTION") return;
@@ -386,6 +444,7 @@ export class GameManager {
   }
 
   private async handleRevealAnswers(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     const game = this.activeGames.get(upperCode);
     if (!game || game.status !== "REVEALING") return;
@@ -754,6 +813,7 @@ export class GameManager {
     socket: TypedSocket,
     data: { gameCode: string }
   ) {
+    if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     const game = this.activeGames.get(upperCode);
     if (!game) return;
@@ -784,6 +844,7 @@ export class GameManager {
   }
 
   private async handleEndGame(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     await this.endGame(data.gameCode.toUpperCase());
   }
 
@@ -862,6 +923,7 @@ export class GameManager {
   }
 
   private async handleCancelGame(socket: TypedSocket, data: { gameCode: string }) {
+    if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     console.log(`Received cancel game request for ${upperCode}`);
 
@@ -928,6 +990,7 @@ export class GameManager {
     socket: TypedSocket,
     data: { gameCode: string; playerId: string }
   ) {
+    if (!(await this.requireHostSocket(socket))) return;
     const { gameCode, playerId } = data;
     const upperCode = gameCode.toUpperCase();
 
@@ -991,6 +1054,7 @@ export class GameManager {
     socket: TypedSocket,
     data: { gameCode: string; playerId: string }
   ) {
+    if (!(await this.requireHostSocket(socket))) return;
     const { gameCode, playerId } = data;
     const upperCode = gameCode.toUpperCase();
 
@@ -1043,6 +1107,7 @@ export class GameManager {
     socket: TypedSocket,
     data: { gameCode: string; playerId: string }
   ) {
+    if (!(await this.requireHostSocket(socket))) return;
     const { gameCode, playerId } = data;
     const upperCode = gameCode.toUpperCase();
 
@@ -1079,6 +1144,7 @@ export class GameManager {
     socket: TypedSocket,
     data: { gameCode: string; autoAdmit: boolean }
   ) {
+    if (!(await this.requireHostSocket(socket))) return;
     const { gameCode, autoAdmit } = data;
     const upperCode = gameCode.toUpperCase();
 
@@ -1448,10 +1514,11 @@ export class GameManager {
     this.storePlayerViewState(resolvedGameCode, resolvedPlayerId, viewState);
   }
 
-  private handleHostRequestPlayerViews(
+  private async handleHostRequestPlayerViews(
     socket: TypedSocket,
     data: { gameCode: string }
   ) {
+    if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     const views = this.playerViewStates.get(upperCode);
     const payload: Record<string, PlayerViewState> = {};

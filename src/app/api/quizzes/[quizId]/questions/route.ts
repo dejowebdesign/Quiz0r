@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
 }
 
-// GET /api/quizzes/[quizId]/questions - List questions
+// GET /api/quizzes/[quizId]/questions - List questions (admin only)
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
 
@@ -30,8 +33,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// POST /api/quizzes/[quizId]/questions - Create question with answers
+// POST /api/quizzes/[quizId]/questions - Create question with answers (admin only)
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
     const body = await request.json();

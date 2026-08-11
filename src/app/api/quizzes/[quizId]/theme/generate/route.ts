@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateThemeFromAnswers } from "@/lib/openai-theme";
 import { ThemeWizardAnswers } from "@/lib/theme-template";
 import { parseTheme } from "@/lib/theme";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteContext {
   params: Promise<{ quizId: string }>;
 }
 
+// POST /api/quizzes/[quizId]/theme/generate - Generate theme with AI (admin only)
 export async function POST(request: NextRequest, context: RouteContext) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await context.params;
     if (!quizId) {

@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
 }
 
-// PUT /api/quizzes/[quizId]/questions/reorder - Reorder questions
+// PUT /api/quizzes/[quizId]/questions/reorder - Reorder questions (admin only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
     const { questionIds } = await request.json();

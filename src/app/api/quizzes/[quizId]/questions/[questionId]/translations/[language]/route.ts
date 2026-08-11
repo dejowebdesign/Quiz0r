@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { SupportedLanguages, type LanguageCode } from "@/types";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// PUT /api/quizzes/[quizId]/questions/[questionId]/translations/[language] - Update manual translation
+// PUT /api/quizzes/[quizId]/questions/[questionId]/translations/[language] - Update manual translation (admin only)
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ quizId: string; questionId: string; language: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { questionId, language } = await params;
   try {
     const body = await request.json();
@@ -104,11 +107,13 @@ export async function PUT(
   }
 }
 
-// DELETE /api/quizzes/[quizId]/questions/[questionId]/translations/[language] - Delete translation
+// DELETE /api/quizzes/[quizId]/questions/[questionId]/translations/[language] - Delete translation (admin only)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ quizId: string; questionId: string; language: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { questionId, language } = await params;
   try {
 

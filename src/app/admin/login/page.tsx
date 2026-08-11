@@ -1,0 +1,236 @@
+"use client";
+
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Lock, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+import { PasswordStrengthIndicator } from "@/components/settings/PasswordStrengthIndicator";
+import { calculatePasswordStrength } from "@/lib/password-strength";
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminLoginInner />
+    </Suspense>
+  );
+}
+
+function AdminLoginInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/admin";
+
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Login state
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Setup state
+  const [setupUsername, setSetupUsername] = useState("admin");
+  const [setupPassword, setSetupPassword] = useState("");
+  const [setupPasswordConfirm, setSetupPasswordConfirm] = useState("");
+
+  useEffect(() => {
+    async function check() {
+      try {
+        const res = await fetch("/api/auth/login");
+        if (res.ok) {
+          const data = await res.json();
+          setConfigured(!!data.configured);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    }
+    check();
+  }, []);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.replace(redirect);
+        router.refresh();
+      } else {
+        toast.error(data.error || "Login failed");
+      }
+    } catch {
+      toast.error("Login failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleSetup(e: React.FormEvent) {
+    e.preventDefault();
+    if (setupPassword.length < 12) {
+      toast.error("Password must be at least 12 characters");
+      return;
+    }
+    if (setupPassword !== setupPasswordConfirm) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: setupUsername.trim(),
+          password: setupPassword,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Admin account created");
+        router.replace(redirect);
+        router.refresh();
+      } else {
+        toast.error(data.error || "Setup failed");
+      }
+    } catch {
+      toast.error("Setup failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // First-run setup: create the admin account.
+  if (configured === false) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-primary" />
+            </div>
+            <CardTitle>Create admin account</CardTitle>
+            <CardDescription>
+              Quiz0r needs an administrator account before anyone can manage
+              quizzes, themes, or settings. This only runs once.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSetup} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="setupUsername">Username</Label>
+                <Input
+                  id="setupUsername"
+                  value={setupUsername}
+                  onChange={(e) => setSetupUsername(e.target.value)}
+                  required
+                  minLength={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="setupPassword">Password (min 12 chars)</Label>
+                <Input
+                  id="setupPassword"
+                  type="password"
+                  value={setupPassword}
+                  onChange={(e) => setSetupPassword(e.target.value)}
+                  required
+                />
+                <PasswordStrengthIndicator strength={calculatePasswordStrength(setupPassword)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="setupPasswordConfirm">Confirm password</Label>
+                <Input
+                  id="setupPasswordConfirm"
+                  type="password"
+                  value={setupPasswordConfirm}
+                  onChange={(e) => setSetupPasswordConfirm(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create admin account"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Standard login.
+  return (
+    <div className="flex items-center justify-center min-h-[70vh] px-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <Lock className="w-6 h-6 text-primary" />
+          </div>
+          <CardTitle>Admin login</CardTitle>
+          <CardDescription>Sign in to manage Quiz0r.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

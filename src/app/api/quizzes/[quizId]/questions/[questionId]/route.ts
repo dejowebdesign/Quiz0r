@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ quizId: string; questionId: string }>;
 }
 
-// PUT /api/quizzes/[quizId]/questions/[questionId] - Update question
+// PUT /api/quizzes/[quizId]/questions/[questionId] - Update question (admin only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { questionId } = await params;
     const body = await request.json();
@@ -96,8 +99,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/quizzes/[quizId]/questions/[questionId] - Delete question
+// DELETE /api/quizzes/[quizId]/questions/[questionId] - Delete question (admin only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId, questionId } = await params;
 

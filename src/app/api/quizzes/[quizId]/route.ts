@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
 }
 
-// GET /api/quizzes/[quizId] - Get quiz details
+// GET /api/quizzes/[quizId] - Get quiz details (admin only)
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
 
@@ -42,8 +45,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PUT /api/quizzes/[quizId] - Update quiz
+// PUT /api/quizzes/[quizId] - Update quiz (admin only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
     const body = await request.json();
@@ -71,6 +76,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // PATCH /api/quizzes/[quizId] - Partially update quiz (e.g., autoAdmit, power-ups)
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
     const body = await request.json();
@@ -96,8 +103,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/quizzes/[quizId] - Soft delete quiz
+// DELETE /api/quizzes/[quizId] - Soft delete quiz (admin only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const { quizId } = await params;
 

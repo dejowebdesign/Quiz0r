@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { SupportedLanguages, type LanguageCode } from "@/types";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// DELETE /api/quizzes/[quizId]/translations/[language] - Delete all translations for a language
+// DELETE /api/quizzes/[quizId]/translations/[language] - Delete all translations for a language (admin only)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ quizId: string; language: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { quizId, language } = await params;
   try {
 

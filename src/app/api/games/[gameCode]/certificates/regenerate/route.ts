@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CertificateService } from "@/lib/certificate-service";
+import { requireAdmin } from "@/lib/auth";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ gameCode: string }> }
 ) {
+  // Regenerating certificates is an admin/host maintenance action. The
+  // /api/games/ prefix is public for join + player certificate download, so
+  // enforce the admin session here.
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
+
   const { gameCode } = await params;
   try {
     const body = await request.json();

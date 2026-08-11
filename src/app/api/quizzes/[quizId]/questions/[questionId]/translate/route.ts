@@ -2,14 +2,17 @@ import { NextResponse } from "next/server";
 import { translateQuestion, translateSection } from "@/lib/openai-translate";
 import { SupportedLanguages, type LanguageCode } from "@/types";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/quizzes/[quizId]/questions/[questionId]/translate - Translate single question or section
+// POST /api/quizzes/[quizId]/questions/[questionId]/translate - Translate single question or section (admin only)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ quizId: string; questionId: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { questionId } = await params;
   try {
     const body = await request.json();

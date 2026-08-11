@@ -104,6 +104,9 @@ describe("GameManager stress test", () => {
     }
 
     const hostSocket = createMockSocket("host-1");
+    // The stress test bypasses handleConnection, so mark the host socket as
+    // authorized to satisfy the requireHostSocket guard.
+    hostSocket.data.isHostAuthorized = true;
     io.registerSocket(hostSocket);
     await (manager as any).handleStartGame(hostSocket as any, { gameCode: "ABC123" });
 

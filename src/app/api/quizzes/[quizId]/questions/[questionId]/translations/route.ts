@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/quizzes/[quizId]/questions/[questionId]/translations - Get all translations for a question
+// GET /api/quizzes/[quizId]/questions/[questionId]/translations - Get all translations for a question (admin only)
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ quizId: string; questionId: string }> }
 ) {
+  const auth = await requireAdmin(request);
+  if (!auth.ok) return auth.response;
   const { questionId } = await params;
   try {
 

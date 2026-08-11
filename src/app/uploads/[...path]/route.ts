@@ -9,15 +9,33 @@ export async function GET(
 ) {
   const { path: filePathSegments } = await params;
   try {
-    const filePath = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      ...filePathSegments
-    );
+    // Path-traversal hardening: reject any segment that could escape the
+    // uploads directory (relative paths, drive letters, NUL bytes).
+    if (
+      filePathSegments.some((seg) =>
+        /(^|[\\/])\.\.([\\/]|$)/.test(seg) ||
+        seg.includes("\0") ||
+        /^[a-zA-Z]:/.test(seg)
+      )
+    ) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
 
-    const data = await readFile(filePath);
-    const ext = path.extname(filePath).toLowerCase();
+    const uploadsRoot = path.join(process.cwd(), "public", "uploads");
+    const filePath = path.join(uploadsRoot, ...filePathSegments);
+
+    // Confirm the resolved path is still inside the uploads root.
+    const resolved = path.resolve(filePath);
+    const root = path.resolve(uploadsRoot);
+    if (
+      resolved !== root &&
+      !resolved.startsWith(root + path.sep)
+    ) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    }
+
+    const data = await readFile(resolved);
+    const ext = path.extname(resolved).toLowerCase();
     const contentType =
       ({
         ".jpg": "image/jpeg",

@@ -54,19 +54,15 @@ import { ImportDialog } from "@/components/settings/ImportDialog";
 
 interface SettingsData {
   ngrokToken: string | null;
-  ngrokTokenRaw: string | null;
   hasToken: boolean;
   tunnelRunning: boolean;
   tunnelUrl: string | null;
   shortioApiKey: string | null;
-  shortioApiKeyRaw: string | null;
   hasShortioApiKey: boolean;
   shortioDomain: string | null;
   openaiApiKey: string | null;
-  openaiApiKeyRaw: string | null;
   hasOpenaiApiKey: boolean;
   unsplashApiKey: string | null;
-  unsplashApiKeyRaw: string | null;
   hasUnsplashApiKey: boolean;
 }
 
@@ -96,6 +92,9 @@ export default function SettingsPage() {
   const [showExportNotice, setShowExportNotice] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [removeTokenDialogOpen, setRemoveTokenDialogOpen] = useState(false);
+  // Raw secret values fetched on demand from the export endpoint so that
+  // secrets are not held in the regular settings state.
+  const [rawSettings, setRawSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchSettings();
@@ -112,6 +111,18 @@ export default function SettingsPage() {
       console.error("Failed to fetch settings:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchRawSettings() {
+    try {
+      const res = await fetch("/api/settings/export");
+      if (res.ok) {
+        const data = (await res.json()) as Record<string, string>;
+        setRawSettings(data || {});
+      }
+    } catch (error) {
+      console.error("Failed to fetch raw settings:", error);
     }
   }
 
@@ -432,11 +443,23 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await fetchRawSettings();
+                setExportDialogOpen(true);
+              }}
+            >
               <Download className="mr-2 h-4 w-4" />
               Export Settings
             </Button>
-            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                await fetchRawSettings();
+                setImportDialogOpen(true);
+              }}
+            >
               <Upload className="mr-2 h-4 w-4" />
               Import Settings
             </Button>
@@ -1014,11 +1037,11 @@ export default function SettingsPage() {
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         settings={{
-          ngrok_token: settings?.ngrokTokenRaw || "",
-          shortio_api_key: settings?.shortioApiKeyRaw || "",
+          ngrok_token: rawSettings.ngrok_token || "",
+          shortio_api_key: rawSettings.shortio_api_key || "",
           shortio_domain: settings?.shortioDomain || "",
-          openai_api_key: settings?.openaiApiKeyRaw || "",
-          unsplash_api_key: settings?.unsplashApiKeyRaw || "",
+          openai_api_key: rawSettings.openai_api_key || "",
+          unsplash_api_key: rawSettings.unsplash_api_key || "",
         }}
         onExportSuccess={() => setShowExportNotice(true)}
       />
@@ -1027,11 +1050,11 @@ export default function SettingsPage() {
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         currentSettings={{
-          ngrok_token: settings?.ngrokTokenRaw || "",
-          shortio_api_key: settings?.shortioApiKeyRaw || "",
+          ngrok_token: rawSettings.ngrok_token || "",
+          shortio_api_key: rawSettings.shortio_api_key || "",
           shortio_domain: settings?.shortioDomain || "",
-          openai_api_key: settings?.openaiApiKeyRaw || "",
-          unsplash_api_key: settings?.unsplashApiKeyRaw || "",
+          openai_api_key: rawSettings.openai_api_key || "",
+          unsplash_api_key: rawSettings.unsplash_api_key || "",
         }}
         onImportSuccess={() => {
           // Refresh settings after import
