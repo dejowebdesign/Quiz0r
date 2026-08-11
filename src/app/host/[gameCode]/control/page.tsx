@@ -1,5 +1,6 @@
 "use client";
 
+import { use } from "react";
 import Link from "next/link";
 import { use, useState, useEffect } from "react";
 import { useSocket } from "@/hooks/useSocket";

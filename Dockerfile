@@ -6,9 +6,10 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and scripts (needed for postinstall)
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY scripts ./scripts/
 
 # Install dependencies
 RUN npm ci
