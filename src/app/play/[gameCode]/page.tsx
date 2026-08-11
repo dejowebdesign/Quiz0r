@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { use, useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
 import { useQuizPreloader } from "@/hooks/useQuizPreloader";
@@ -38,9 +38,9 @@ import { getContrastingTextColor } from "@/lib/color-utils";
 export default function PlayerGamePage({
   params,
 }: {
-  params: { gameCode: string };
+  params: Promise<{ gameCode: string }>;
 }) {
-  const { gameCode } = params;
+  const { gameCode } = use(params);
   const router = useRouter();
   const [playerName, setPlayerName] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
@@ -445,12 +445,86 @@ export default function PlayerGamePage({
       if (!screenRef.current || !socket || !monitorViewState) return;
       try {
         const html2canvas = (await import("html2canvas")).default;
+        // TEMPORARY DIAGNOSTIC: Bypass prepareElementForHtml2canvas to test if it's causing the iframe error
         const canvas = await html2canvas(screenRef.current, {
           useCORS: true,
           logging: false,
           scale: 0.5,
           backgroundColor: null,
           ignoreElements: (el) => el.getAttribute("data-ignore-monitor") === "true",
+          onclone: (clonedDoc) => {
+            // DIAGNOSTIC: Inspect cloned document for oklab/lab/oklch/lch values
+            console.log("=== DIAGNOSTIC: Inspecting cloned document for unsupported color functions ===");
+            
+            // Check all elements in the cloned document
+            const allElements = clonedDoc.querySelectorAll('*');
+            allElements.forEach(element => {
+              // Get computed styles for this element
+              const computedStyle = window.getComputedStyle(element);
+              
+              // Check specific CSS properties for unsupported color functions
+              const colorProperties = [
+                'color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 
+                'borderBottomColor', 'borderLeftColor', 'outlineColor', 
+                'boxShadow', 'textShadow', 'fill', 'stroke'
+              ];
+              
+              colorProperties.forEach(property => {
+                const value = computedStyle.getPropertyValue(property);
+                if (value && (value.includes('oklab(') || value.includes('lab(') || 
+                             value.includes('oklch(') || value.includes('lch('))) {
+                  console.log("=== UNSUPPORTED COLOR FUNCTION FOUND ===");
+                  console.log({
+                    tag: element.tagName,
+                    className: element.className || "none",
+                    property: property,
+                    value: value,
+                    inlineValue: element.getAttribute('style') || "none",
+                    outerHTML: element.outerHTML.substring(0, 500)
+                  });
+                }
+              });
+              
+              // Check inline styles
+              const inlineStyle = element.getAttribute('style');
+              if (inlineStyle && (inlineStyle.includes('oklab(') || inlineStyle.includes('lab(') || 
+                                 inlineStyle.includes('oklch(') || inlineStyle.includes('lch('))) {
+                console.log("=== INLINE STYLE WITH UNSUPPORTED COLOR FUNCTION ===");
+                console.log({
+                  tag: element.tagName,
+                  className: element.className || "none",
+                  property: "inline-style",
+                  value: inlineStyle,
+                  inlineValue: inlineStyle,
+                  outerHTML: element.outerHTML.substring(0, 500)
+                });
+              }
+            });
+            
+            // Check CSS custom properties
+            const root = clonedDoc.documentElement;
+            if (root) {
+              const computedRoot = window.getComputedStyle(root);
+              for (let i = 0; i < computedRoot.length; i++) {
+                const propName = computedRoot.item(i);
+                if (propName.startsWith('--')) {
+                  const propValue = computedRoot.getPropertyValue(propName);
+                  if (propValue && (propValue.includes('oklab(') || propValue.includes('lab(') || 
+                                   propValue.includes('oklch(') || propValue.includes('lch('))) {
+                    console.log("=== CSS CUSTOM PROPERTY WITH UNSUPPORTED COLOR FUNCTION ===");
+                    console.log({
+                      tag: 'CSS-root',
+                      className: 'custom-property',
+                      property: propName,
+                      value: propValue,
+                      inlineValue: "none",
+                      outerHTML: propName + ': ' + propValue.substring(0, 200)
+                    });
+                  }
+                }
+              }
+            }
+          }
         });
         const screenshot = canvas.toDataURL("image/jpeg", 0.7);
         latestScreenshot.current = screenshot;

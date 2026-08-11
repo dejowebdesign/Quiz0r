@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { PowerUpType, SupportedLanguages } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -57,9 +57,9 @@ import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
 export default function HostControlPage({
   params,
 }: {
-  params: { gameCode: string };
+  params: Promise<{ gameCode: string }>;
 }) {
-  const { gameCode } = params;
+  const { gameCode } = use(params);
   const {
     connected,
     gameState,

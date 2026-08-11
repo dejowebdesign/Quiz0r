@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { useSocket } from "@/hooks/useSocket";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +25,9 @@ const ITEMS_PER_PAGE = 9;
 export default function PlayerMonitorPage({
   params,
 }: {
-  params: { gameCode: string };
+  params: Promise<{ gameCode: string }>;
 }) {
-  const { gameCode } = params;
+  const { gameCode } = use(params);
   const { connected, playerViews, requestPlayerViews } = useSocket({
     gameCode,
     role: "host",
