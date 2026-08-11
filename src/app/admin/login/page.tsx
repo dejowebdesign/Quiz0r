@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,6 @@ export default function AdminLoginPage() {
 }
 
 function AdminLoginInner() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/admin";
 
@@ -65,8 +64,14 @@ function AdminLoginInner() {
       });
       const data = await res.json();
       if (res.ok) {
-        router.replace(redirect);
-        router.refresh();
+        // Hard navigation: the Next.js App Router's soft router.replace()
+        // does not reliably transition to a middleware-gated route right
+        // after an auth-state change (the Router Cache can drop the
+        // navigation, leaving the user on the login page until a manual
+        // reload). A full document load guarantees the proxy middleware
+        // re-runs with the freshly-set HttpOnly session cookie. This works
+        // the same over HTTP and HTTPS (Zoraxy).
+        window.location.replace(redirect);
       } else {
         toast.error(data.error || "Login failed");
       }
@@ -100,8 +105,9 @@ function AdminLoginInner() {
       const data = await res.json();
       if (res.ok) {
         toast.success("Admin account created");
-        router.replace(redirect);
-        router.refresh();
+        // Hard navigation (see handleLogin): a soft router.replace() can be
+        // dropped by the App Router cache after an auth-state change.
+        window.location.replace(redirect);
       } else {
         toast.error(data.error || "Setup failed");
       }
