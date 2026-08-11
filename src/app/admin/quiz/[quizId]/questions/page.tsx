@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { use, useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
@@ -120,9 +120,9 @@ function flattenGroups(groups: SectionGroup[]): Question[] {
 export default function QuestionsPage({
   params,
 }: {
-  params: { quizId: string };
+  params: Promise<{ quizId: string }>;
 }) {
-  const { quizId } = params;
+  const { quizId } = use(params);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);

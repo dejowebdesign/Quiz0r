@@ -12,7 +12,8 @@
     "test:watch": "vitest watch",
     "test:e2e": "playwright test -c testing/playwright.config.ts",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "postinstall": "node scripts/patch-html2canvas.js"
   },
   "description": "Real-time multiplayer quiz application",
   "dependencies": {

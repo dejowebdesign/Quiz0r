@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { use, useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSocket } from "@/hooks/useSocket";
 import { useQuizPreloader } from "@/hooks/useQuizPreloader";
@@ -38,9 +38,9 @@ import { getContrastingTextColor } from "@/lib/color-utils";
 export default function PlayerGamePage({
   params,
 }: {
-  params: { gameCode: string };
+  params: Promise<{ gameCode: string }>;
 }) {
-  const { gameCode } = params;
+  const { gameCode } = use(params);
   const router = useRouter();
   const [playerName, setPlayerName] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useSocket } from "@/hooks/useSocket";
 import { Progress } from "@/components/ui/progress";
@@ -18,9 +18,9 @@ import { SupportedLanguages } from "@/types";
 export default function HostDisplayPage({
   params,
 }: {
-  params: { gameCode: string };
+  params: Promise<{ gameCode: string }>;
 }) {
-  const { gameCode } = params;
+  const { gameCode } = use(params);
   const [baseUrl, setBaseUrl] = useState("");
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [urlReady, setUrlReady] = useState(false);

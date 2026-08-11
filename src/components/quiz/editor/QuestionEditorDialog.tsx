@@ -26,7 +26,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Tabs,
@@ -234,8 +233,21 @@ export function QuestionEditorDialog({
     hasValidQuestion && hasEnoughAnswers && hasCorrectAnswer && hasRequiredHint;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 [&>button]:hidden">
+    <Dialog open={open ?? false} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+        {/* Custom close button positioned at top-right, above sticky header */}
+        <button
+          type="button"
+          onClick={() => {
+            onCancel();
+            onOpenChange(false);
+          }}
+          className="absolute right-4 top-4 z-20 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
         {/* Sticky Header */}
         <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-4 border-b">
           <div className="flex items-start justify-between">
@@ -247,10 +259,6 @@ export function QuestionEditorDialog({
                 Create a multiple choice question with 2-6 answer options.
               </DialogDescription>
             </DialogHeader>
-            <DialogClose className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </DialogClose>
           </div>
         </div>
 
@@ -854,7 +862,11 @@ export function QuestionEditorDialog({
 
         {/* Footer */}
         <div className="shrink-0 bg-background px-6 py-4 border-t flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+          >
             Cancel
           </Button>
           <Button onClick={onSave} disabled={!canSave}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ import { PRESET_LIST, THEME_PRESETS } from "@/lib/theme-presets";
 import { ArrowLeft, Check, Loader2, Palette, Plus } from "lucide-react";
 
 interface Props {
-  params: { quizId: string };
+  params: Promise<{ quizId: string }>;
 }
 
 interface ThemeRecord {
@@ -38,7 +38,7 @@ type ThemeOption = {
 };
 
 export default function QuizThemeApplyPage({ params }: Props) {
-  const { quizId } = params;
+  const { quizId } = use(params);
   const router = useRouter();
 
   const [quizTitle, setQuizTitle] = useState("");

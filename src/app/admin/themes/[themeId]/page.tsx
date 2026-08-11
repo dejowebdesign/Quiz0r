@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ import {
 } from "lucide-react";
 
 interface Props {
-  params: { themeId: string };
+  params: Promise<{ themeId: string }>;
 }
 
 type TabType = "presets" | "wizard" | "json";
@@ -65,7 +65,7 @@ function findBuiltinThemeId(themeJson: string | null | undefined): string | null
 }
 
 export default function ThemeBuilderPage({ params }: Props) {
-  const { themeId } = params;
+  const { themeId } = use(params);
   const router = useRouter();
   const isNew = themeId === "new";
 
