@@ -34,6 +34,9 @@ import {
 } from "@/components/certificate/CertificateDownloadButton";
 import { BORDER_RADIUS_MAP, SHADOW_MAP } from "@/types/theme";
 import { getContrastingTextColor } from "@/lib/color-utils";
+import { LanguageSelector } from "@/components/ui/language-selector";
+import { useTranslation } from "@/hooks/useTranslation";
+import { AppLocale } from "@/contexts/I18nContext";
 
 export default function PlayerGamePage({
   params,
@@ -42,6 +45,7 @@ export default function PlayerGamePage({
 }) {
   const { gameCode } = use(params);
   const router = useRouter();
+  const { locale: appLocale, setLocale: setAppLocale } = useTranslation();
   const [playerName, setPlayerName] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
@@ -1136,6 +1140,23 @@ export default function PlayerGamePage({
               </form>
             </CardContent>
           </Card>
+
+          {/* Application Language Selector at bottom left */}
+          <div className="fixed bottom-4 left-4 z-20">
+            <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl shadow-lg overflow-hidden">
+              <Select value={appLocale} onValueChange={(value) => setAppLocale(value as AppLocale)}>
+                <SelectTrigger className="h-9 w-[130px] border-0 bg-transparent">
+                  <Globe className="w-4 h-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">🇬🇧 English</SelectItem>
+                  <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
+                  <SelectItem value="sr">🇷🇸 Srpski</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </ThemeProvider>
     );
@@ -1794,7 +1815,7 @@ export default function PlayerGamePage({
             </div>
           )}
 
-          {/* Collapsible Language Selector at bottom right */}
+          {/* Collapsible Quiz Content Language Selector at bottom right */}
           {availableLanguages.length > 1 && (
             <div className="fixed bottom-4 right-4 z-20">
               <div className={`
@@ -1805,7 +1826,7 @@ export default function PlayerGamePage({
                 {showLanguageSelector ? (
                   <div className="p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Select Quiz Questions/Answer Language</span>
+                    <span className="text-sm font-medium">Quiz Language</span>
                       <button
                         onClick={() => setShowLanguageSelector(false)}
                         className="text-muted-foreground hover:text-foreground"

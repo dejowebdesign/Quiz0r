@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "Quiz0r",
+    "tagline": "Kreirajte, vodite i igrate interaktivne kvizove u realnom vremenu"
+  },
+  "nav": {
+    "quizzes": "Kvizovi",
+    "games": "Igre",
+    "host": "Host",
+    "themes": "Teme",
+    "settings": "Postavke"
+  },
+  "common": {
+    "save": "Sačuvaj",
+    "cancel": "Otkaži",
+    "close": "Zatvori",
+    "delete": "Obriši",
+    "edit": "Uredi",
+    "loading": "Učitavanje...",
+    "error": "Greška",
+    "success": "Uspešno",
+    "confirm": "Potvrdi",
+    "back": "Nazad",
+    "next": "Dalje",
+    "previous": "Prethodno",
+    "search": "Pretraži",
+    "add": "Dodaj",
+    "remove": "Ukloni",
+    "submit": "Pošalji",
+    "retry": "Pokušaj ponovo",
+    "yes": "Da",
+    "no": "Ne",
+    "ok": "U redu"
+  },
+  "language": {
+    "select": "Jezik",
+    "english": "Engleski",
+    "german": "Nemački",
+    "serbian": "Srpski"
+  },
+  "errors": {
+    "generic": "Nešto je pošlo naopako",
+    "notFound": "Nije pronađeno",
+    "loading": "Greška pri učitavanju",
+    "saving": "Greška pri čuvanju"
+  },
+  "player": {
+    "join": "Pridruži se igri",
+    "enterName": "Unesite vaše ime",
+    "waiting": "Čekanje početka igre...",
+    "question": "Pitanje",
+    "score": "Poeni",
+    "rank": "Rang",
+    "waitingTime": "Čekanje isteka vremena...",
+    "submitted": "Odgovor poslat!",
+    "correct": "Tačno!",
+    "incorrect": "Netačno",
+    "applicationLanguage": "Jezik aplikacije"
+  }
+}

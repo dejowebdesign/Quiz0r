@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "Quiz0r",
+    "tagline": "Erstelle, moderiere und spiele interaktive Quiz in Echtzeit"
+  },
+  "nav": {
+    "quizzes": "Quiz",
+    "games": "Spiele",
+    "host": "Host",
+    "themes": "Themen",
+    "settings": "Einstellungen"
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolgreich",
+    "confirm": "Bestätigen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "search": "Suchen",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "submit": "Absenden",
+    "retry": "Erneut versuchen",
+    "yes": "Ja",
+    "no": "Nein",
+    "ok": "OK"
+  },
+  "language": {
+    "select": "Sprache",
+    "english": "Englisch",
+    "german": "Deutsch",
+    "serbian": "Serbisch"
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen",
+    "notFound": "Nicht gefunden",
+    "loading": "Fehler beim Laden",
+    "saving": "Fehler beim Speichern"
+  },
+  "player": {
+    "join": "Spiel beitreten",
+    "enterName": "Gib deinen Namen ein",
+    "waiting": "Warte auf Spielstart...",
+    "question": "Frage",
+    "score": "Punkte",
+    "rank": "Rang",
+    "waitingTime": "Warte auf Zeitablauf...",
+    "submitted": "Antwort gesendet!",
+    "correct": "Richtig!",
+    "incorrect": "Falsch",
+    "applicationLanguage": "Anwendungssprache"
+  }
+}

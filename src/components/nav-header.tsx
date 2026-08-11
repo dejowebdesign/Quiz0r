@@ -6,54 +6,57 @@ import { usePathname } from "next/navigation";
 import { Menu, X, FileQuestion, Gamepad2, Play, Settings, Home, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
+import { LanguageSelector } from "@/components/ui/language-selector";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const navLinks = [
   {
     href: "/admin",
-    label: "Quizzes",
+    labelKey: "nav.quizzes",
     icon: FileQuestion,
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
-    description: "Create and manage quizzes",
+    descriptionKey: "nav.quizzes",
   },
   {
     href: "/admin/games",
-    label: "Games",
+    labelKey: "nav.games",
     icon: Gamepad2,
     color: "text-orange-500",
     bgColor: "bg-orange-500/10",
-    description: "View game sessions",
+    descriptionKey: "nav.games",
   },
   {
     href: "/host",
-    label: "Host",
+    labelKey: "nav.host",
     icon: Play,
     color: "text-red-500",
     bgColor: "bg-red-500/10",
-    description: "Start a game session",
+    descriptionKey: "nav.host",
   },
   {
     href: "/admin/themes",
-    label: "Themes",
+    labelKey: "nav.themes",
     icon: Palette,
     color: "text-yellow-500",
     bgColor: "bg-yellow-500/10",
-    description: "Manage and edit themes",
+    descriptionKey: "nav.themes",
   },
   {
     href: "/admin/settings",
-    label: "Settings",
+    labelKey: "nav.settings",
     icon: Settings,
     color: "text-orange-600",
     bgColor: "bg-orange-600/10",
-    description: "App configuration",
+    descriptionKey: "nav.settings",
   },
 ];
 
 export function NavHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const isActive = (href: string) => {
     if (href === "/admin") {
@@ -95,16 +98,18 @@ export function NavHeader() {
                 )}
               >
                 <Icon className={cn("w-4 h-4", active ? "text-primary" : link.color)} />
-                {link.label}
+                {t(link.labelKey)}
               </Link>
             );
           })}
           <div className="h-6 w-px bg-border mx-2" />
           <DarkModeToggle showLabel={false} />
+          <LanguageSelector />
         </nav>
 
         {/* Mobile menu button */}
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageSelector />
           <DarkModeToggle showLabel={false} />
           <Button
             variant="ghost"
@@ -140,9 +145,9 @@ export function NavHeader() {
                   </div>
                   <div className="flex-1">
                     <div className={cn("font-medium", active ? "text-primary" : "text-foreground")}>
-                      {link.label}
+                      {t(link.labelKey)}
                     </div>
-                    <div className="text-xs text-muted-foreground">{link.description}</div>
+                    <div className="text-xs text-muted-foreground">{t(link.labelKey)}</div>
                   </div>
                 </Link>
               );

@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "Quiz0r",
+    "tagline": "Create, host, and play interactive quizzes in real-time"
+  },
+  "nav": {
+    "quizzes": "Quizzes",
+    "games": "Games",
+    "host": "Host",
+    "themes": "Themes",
+    "settings": "Settings"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "add": "Add",
+    "remove": "Remove",
+    "submit": "Submit",
+    "retry": "Retry",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
+  },
+  "language": {
+    "select": "Language",
+    "english": "English",
+    "german": "German",
+    "serbian": "Serbian"
+  },
+  "errors": {
+    "generic": "Something went wrong",
+    "notFound": "Not found",
+    "loading": "Error loading data",
+    "saving": "Error saving data"
+  },
+  "player": {
+    "join": "Join Game",
+    "enterName": "Enter your name",
+    "waiting": "Waiting for game to start...",
+    "question": "Question",
+    "score": "Score",
+    "rank": "Rank",
+    "waitingTime": "Waiting for time to expire...",
+    "submitted": "Answer submitted!",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "applicationLanguage": "Application Language"
+  }
+}
