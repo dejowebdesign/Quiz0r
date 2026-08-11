@@ -1,76 +1,23 @@
-import OpenAI from "openai";
+/**
+ * Quiz Question Generator
+ * 
+ * This module handles the generation and normalization of quiz questions
+ * using AI providers. The provider-specific code is abstracted through
+ * the AIProvider interface.
+ */
+
 import { prisma } from "@/lib/db";
 import { fetchUnsplashImages } from "@/lib/unsplash";
-
-export interface QuizGenerationOptions {
-  topic: string;
-  difficulty: string;
-  questionCount: number;
-  sectionCount: number;
-  additionalNotes?: string;
-}
-
-interface AIAnswer {
-  answerText: string;
-  isCorrect?: boolean;
-  imageUrl?: string | null;
-}
-
-interface AIQuestion {
-  questionText?: string;
-  questionType?: string;
-  hint?: string | null;
-  hostNotes?: string | null;
-  imageUrl?: string | null;
-  timeLimit?: number;
-  points?: number;
-  answers?: AIAnswer[];
-}
-
-interface AISection {
-  title?: string;
-  description?: string | null;
-  imageUrl?: string | null;
-  questions?: AIQuestion[];
-}
-
-interface AIQuizResponse {
-  title?: string;
-  description?: string | null;
-  sections?: AISection[];
-  questions?: AIQuestion[];
-}
-
-interface NormalizedAnswer {
-  answerText: string;
-  isCorrect: boolean;
-  imageUrl: string | null;
-}
-
-interface NormalizedQuestion {
-  questionText: string;
-  questionType: "SINGLE_SELECT" | "MULTI_SELECT" | "SECTION";
-  hint: string | null;
-  hostNotes: string | null;
-  imageUrl: string | null;
-  timeLimit: number;
-  points: number;
-  answers: NormalizedAnswer[];
-}
-
-async function getOpenAIClient(): Promise<OpenAI | null> {
-  const apiKeySetting = await prisma.setting.findUnique({
-    where: { key: "openai_api_key" },
-  });
-
-  if (!apiKeySetting?.value) {
-    return null;
-  }
-
-  return new OpenAI({
-    apiKey: apiKeySetting.value,
-  });
-}
+import {
+  type QuizGenerationOptions,
+  type NormalizedAnswer,
+  type NormalizedQuestion,
+  type AIAnswer,
+  type AIQuestion,
+  type AISection,
+  type AIQuizResponse,
+  getConfiguredProvider,
+} from "@/lib/ai-provider";
 
 function normalizeQuestionType(type?: string): NormalizedQuestion["questionType"] {
   const normalized = type?.toUpperCase();
@@ -161,44 +108,7 @@ function normalizeQuestion(question: AIQuestion): NormalizedQuestion {
   };
 }
 
-function buildPrompt(options: QuizGenerationOptions, targetQuestionCount: number) {
-  const safeTopic = options.topic.trim() || "General Knowledge";
-  const notes = options.additionalNotes?.trim();
-  const sectionCount = Math.max(0, options.sectionCount);
 
-  return `You are an experienced quiz master. Create a fully-written trivia quiz in ENGLISH ONLY (UK English).
-
-Quiz requirements:
-- Theme: ${safeTopic}
-- Difficulty: ${options.difficulty || "medium"}
-- Total playable questions: ${targetQuestionCount} (do NOT count section headers)
-- Number of sections/groups: ${sectionCount} (each must have a short title/description and at least one question)
-- Use engaging, concise wording suitable for a live host to read aloud.
-- Include a mix of SINGLE_SELECT (one correct answer) and MULTI_SELECT (2+ correct answers where it makes sense).
-- Always provide: questionText, hint, hostNotes, answers (answerText + isCorrect flag), timeLimit (seconds between 15-90), and points (50-200) for each playable question.
-- Provide helpful imageUrl values using reliable, license-friendly links (e.g., images.unsplash.com). Aim for every section AND at least half of the questions to include an image where it fits.
-- Keep everything in English and avoid markdown/code fences.
-- Answers must always include at least one correct and one incorrect option with clear wording.
-
-${notes ? `Extra guidance from the host: ${notes}` : "No extra host guidance provided."}
-
-Return JSON ONLY with this exact shape:
-{
-  "title": "Quiz title",
-  "description": "Short description",
-  "sections": [
-    {
-      "title": "Section title",
-      "description": "What this section covers",
-      "imageUrl": "optional image",
-      "questions": [ /* questions for this section */ ]
-    }
-  ],
-  "questions": [ /* additional questions not tied to a section (optional) */ ]
-}
-
-Remember: keep to the requested counts, keep it English-only, and do not add explanations.`;
-}
 
 function collectQuestionsFromSections(
   sections: AISection[] | undefined,
@@ -353,9 +263,12 @@ async function addImagesToContent(
 }
 
 export async function generateQuizWithAI(options: QuizGenerationOptions) {
-  const openai = await getOpenAIClient();
-  if (!openai) {
-    throw new Error("OpenAI API key not configured");
+  // Get the configured AI provider (OpenAI for now)
+  const provider = await getConfiguredProvider();
+  
+  // Check if the provider is available
+  if (!(await provider.isAvailable())) {
+    throw new Error(`${provider.name} is not configured`);
   }
 
   const questionCount = Math.min(Math.max(options.questionCount, 3), 25);
@@ -363,48 +276,20 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
   const topic = options.topic.trim() || "General Knowledge";
   const difficulty = options.difficulty || "medium";
 
-  const prompt = buildPrompt(
-    { ...options, sectionCount, topic, difficulty },
-    questionCount
-  );
-
   // Load Unsplash access key if configured
   const unsplashSetting = await prisma.setting.findUnique({
     where: { key: "unsplash_api_key" },
   });
   const unsplashAccessKey = unsplashSetting?.value || null;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    temperature: 0.6,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You generate structured quiz JSON for a trivia game. Always respond with strict JSON and keep every string in English (UK).",
-      },
-      { role: "user", content: prompt },
-    ],
-    response_format: { type: "json_object" },
-  });
+  // Generate quiz content using the provider
+  const aiResponse = await provider.generateQuiz(options);
 
-  const responseText = completion.choices[0]?.message?.content;
-  if (!responseText) {
-    throw new Error("No response from OpenAI");
-  }
-
-  let parsed: AIQuizResponse;
-  try {
-    parsed = JSON.parse(responseText) as AIQuizResponse;
-  } catch (err) {
-    console.error("Failed to parse AI quiz response", err);
-    throw new Error("Failed to parse AI response");
-  }
-
+  // Normalize and enrich the AI response
   const normalizedQuestions = await addImagesToContent(
     collectQuestionsFromSections(
-      parsed.sections,
-      parsed.questions || [],
+      aiResponse.sections,
+      aiResponse.questions || [],
       questionCount,
       sectionCount,
       topic
@@ -418,11 +303,11 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
   );
 
   const quizTitle =
-    parsed.title?.trim() ||
+    aiResponse.title?.trim() ||
     `${topic || "AI"} Quiz (${difficulty})`;
 
   const quizDescription =
-    parsed.description?.trim() ||
+    aiResponse.description?.trim() ||
     "Draft created with AI. Review carefully before hosting.";
 
   // Persist quiz with questions

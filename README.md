@@ -5,25 +5,102 @@
 ![Socket.io](https://img.shields.io/badge/Realtime-Socket.io-010101?logo=socketdotio&logoColor=white)
 ![Prisma](https://img.shields.io/badge/DB-Prisma%20%2B%20SQLite-2D3748?logo=prisma&logoColor=white)
 ![Docker](https://img.shields.io/badge/Ready-Docker-2496ED?logo=docker&logoColor=white)
-[![Vibe coded with Claude](https://img.shields.io/badge/Vibe%20coded-Anthropic%20Claude-8A63F9?logo=anthropic&logoColor=BD653E)](https://claude.ai)
-[![Vibe coded with OpenAI](https://img.shields.io/badge/Vibe%20coded-OpenAI-00A67E?logo=openai&logoColor=white)](https://openai.com)
 [![License](https://img.shields.io/badge/License-Custom-orange?logo=open-source-initiative&logoColor=white)](https://github.com/err0r-dev/.github/blob/main/profile/license.md)
 
-If you want a beginner-friendly walkthrough, start with [Non Techie Readme.md](/Non%20Techie%20Readme.md). This README is for people who are comfortable running commands and want details on how the app works.
+A modern, self-hosted real-time quiz platform for teaching, training, presentations, and interactive knowledge assessment.
 
-## Overview
-- Real-time multiplayer quiz game built with Next.js 14 (App Router), Socket.io, Prisma, and Tailwind.
-- Admin builds quizzes (with AI assist, themes, media, translations), hosts games, and shares a QR/join link.
-- Players join via code/QR, answer in real time, and see live leaderboards; certificates can be generated and downloaded.
-- Built-in ngrok support to expose player routes publicly while keeping admin/host routes local-only.
+If you want a beginner-friendly walkthrough, start with [Non Techie Readme.md](/Non%20Techie%20Readme.md). This README is for developers and technical users who want details on how the app works.
 
-## Features
-- Quiz editing: create/import/export quizzes (ZIP with media), reorder questions, rich media, power-ups, host notes, theme presets/JSON editing.
-- AI helpers: AI quiz generator (OpenAI) and Unsplash image sourcing.
-- Translations: translation status indicators; copy English answers into translations.
-- Game flow: real-time scoreboard, host display + control panel, QR/join links, admission controls, delete previous games.
-- Certificates: host/player certificate generation and download.
-- Safety: middleware blocks admin/host APIs from ngrok/public; player routes stay open.
+## About
+
+Quiz0r is a real-time multiplayer quiz application that enables hosts to create, manage, and run interactive quiz sessions. Players join via a game code or QR link and compete in real-time on their devices.
+
+**Key capabilities:**
+- Quiz management: create, edit, import/export quizzes with media support
+- Live gameplay: real-time multiplayer with Socket.io
+- Host controls: display view, player monitor, admission controls
+- AI assistance: AI-powered quiz and theme generation
+- Multilingual: application available in English, German, and Serbian
+- Self-hosting: Docker deployment with persistent SQLite database
+
+## Current Features
+
+### Multilingual Application
+
+The application interface is available in multiple languages:
+- 🇬🇧 English — default/master language
+- 🇩🇪 Deutsch (German)
+- 🇷🇸 Srpski (Serbian)
+
+Application language and quiz-content language are separate systems. The player interface supports application language selection, while quiz content can be generated or translated into different languages.
+
+### Question Types
+
+Current implemented question types:
+- **Single Choice** — one correct answer
+- **Multiple Choice** — multiple correct answers with partial credit scoring
+
+### Scoring System
+
+The scoring system is designed for learning and training quizzes and uses a partial-credit concept for Multiple Choice questions:
+- **Single Choice**: Base points with speed bonus (up to 50% for fastest answers)
+- **Multiple Choice**: Partial credit based on correct/incorrect selections, with penalties for wrong additional selections and speed bonus
+
+The design incorporates concepts inspired by partial-credit scoring systems used in examination contexts.
+
+### AI Question Generation
+
+Quiz0r uses an extensible AI provider abstraction (`AIProvider` interface) that supports multiple AI backends through a single unified `OpenAICompatibleProvider` implementation.
+
+**Architecture:**
+```
+Quiz0r → AIProvider interface → OpenAICompatibleProvider → configured AI endpoint
+```
+
+**Current preset configurations:**
+- OpenAI (GPT-4o)
+- FreeLLMAPI (local proxy with multiple free-tier providers)
+- OpenRouter (aggregated API access)
+- Ollama (local LLM server)
+- LM Studio (local LLM server)
+- Custom OpenAI-compatible endpoint (user-configurable)
+
+API credentials are stored server-side in the database and are never exposed to the client.
+
+> **Note:** The AI provider architecture is implemented. End-to-end testing against local FreeLLMAPI instances is still pending.
+
+### Stability and Improvements
+
+Recent technical improvements include:
+- Dialog animation fixes and html2canvas color handling
+- Tailwind CSS 4 lab()/oklab() compatibility for image generation
+- Docker build/runtime fixes for Prisma 7, Tailwind 4, and Next.js 16
+- AI provider abstraction refactor for extensibility
+- Multilingual application language support
+
+## Planned
+
+Future enhancements under consideration:
+- Additional question types (True/False, Categorise, Matching)
+- Provider/model selection UI
+- Improved AI provider configuration interface
+- Extended language support
+
+## Technology
+
+- **Framework**: Next.js 14 (App Router), React 18, TypeScript
+- **Realtime**: Socket.io for live gameplay
+- **Database**: Prisma ORM with SQLite (local file)
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **AI**: OpenAI SDK (provider-agnostic via abstraction)
+- **Deployment**: Docker with docker-compose
+- **Tunneling**: ngrok for public player access
+
+## Prerequisites
+
+- Node.js 18.17+ and npm
+- SQLite (bundled via Prisma; no external database needed)
+- Docker (optional) for containerized deployment
 
 ## Stack
 - Next.js 14, React 18, TypeScript
@@ -162,4 +239,9 @@ docker compose logs -f   # wait for "Ready on http://localhost:3000"
 - Admin/host routes (`/admin`, `/host`, `/api/quizzes`, `/api/settings`, `/api/tunnel`) are blocked from external/ngrok traffic by middleware (`src/middleware.ts`).
 
 ## License
-This project is licensed under the [ERROR.DEV OPEN USE LICENSE](https://github.com/err0r-dev/.github/blob/main/profile/license.md)
+
+This project is licensed under the [ERROR.DEV OPEN USE LICENSE](https://github.com/err0r-dev/.github/blob/main/profile/license.md).
+
+## Original Quiz0r
+
+This repository is based on the original [Quiz0r project](https://github.com/err0r-dev/Quiz0r) and contains a customized and extended version with additional features, architectural changes, and improvements.

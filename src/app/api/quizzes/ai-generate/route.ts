@@ -47,12 +47,15 @@ export async function POST(request: NextRequest) {
     const message =
       error instanceof Error ? error.message : "Failed to generate quiz with AI";
 
-    const status =
-      message.includes("OpenAI API key not configured") ||
-      message.includes("OpenAI API key")
-        ? 400
-        : 500;
+    // Check for provider configuration errors
+    const isConfigError =
+      message.includes("not configured") ||
+      message.includes("API key") ||
+      message.includes("is not configured");
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: message },
+      { status: isConfigError ? 400 : 500 }
+    );
   }
 }
