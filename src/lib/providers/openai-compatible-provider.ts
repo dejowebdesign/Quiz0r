@@ -19,7 +19,16 @@ import type {
   AIProvider,
   QuizGenerationOptions,
   AIQuizResponse,
+  TestConnectionResult,
 } from "@/lib/ai-provider";
+import {
+  PROVIDER_PRESETS,
+  apiKeySettingKey,
+  baseUrlSettingKey,
+  modelSettingKey,
+  extraHeadersSettingKey,
+  type AIProviderType,
+} from "@/lib/ai-provider-config";
 
 /**
  * Configuration for OpenAI-compatible providers
@@ -40,39 +49,24 @@ export interface OpenAICompatibleConfig {
 }
 
 /**
- * Registry of preset provider configurations
+ * Registry of preset provider configurations.
+ *
+ * Derived from the shared PROVIDER_PRESETS metadata so that UI defaults and
+ * runtime defaults cannot drift apart. OpenRouter carries its preset
+ * HTTP-Referer / X-Title headers.
  */
-export const PRESET_PROVIDERS: Record<string, OpenAICompatibleConfig> = {
-  openai: {
-    name: "openai",
-    baseURL: "https://api.openai.com/v1",
-    defaultModel: "gpt-4o",
-  },
-  freellmapi: {
-    name: "freellmapi",
-    baseURL: "http://localhost:8080/v1",
-    defaultModel: "auto",
-  },
-  openrouter: {
-    name: "openrouter",
-    baseURL: "https://openrouter.ai/api/v1",
-    defaultModel: "auto",
-    extraHeaders: {
-      "HTTP-Referer": "https://quiz0r.app",
-      "X-Title": "Quiz0r",
-    },
-  },
-  ollama: {
-    name: "ollama",
-    baseURL: "http://localhost:11434/v1",
-    defaultModel: "llama3.2",
-  },
-  lmstudio: {
-    name: "lmstudio",
-    baseURL: "http://localhost:1234/v1",
-    defaultModel: "local-model",
-  },
-};
+export const PRESET_PROVIDERS: Record<string, OpenAICompatibleConfig> =
+  Object.fromEntries(
+    Object.entries(PROVIDER_PRESETS).map(([key, meta]) => [
+      key,
+      {
+        name: key,
+        baseURL: meta.baseURL,
+        defaultModel: meta.defaultModel || undefined,
+        extraHeaders: meta.presetExtraHeaders,
+      },
+    ])
+  ) as Record<string, OpenAICompatibleConfig>;
 
 /**
  * OpenAICompatibleProvider
@@ -133,14 +127,49 @@ export class OpenAICompatibleProvider implements AIProvider {
       throw new Error(`Unknown AI provider preset: ${presetName}`);
     }
 
-    // Load API key from settings if the preset requires one
-    const apiKeySetting = await this.getSetting(`ai_${presetName}_api_key`);
-    const modelSetting = await this.getSetting(`ai_${presetName}_model`);
+    const providerType = presetName as AIProviderType;
+    const meta = PROVIDER_PRESETS[providerType];
+
+    // API key: OpenAI reuses the shared openai_api_key setting so that theme
+    // generation, translation, and congratulations keep working. Other
+    // providers use their own ai_{name}_api_key setting.
+    const apiKey = await this.getSetting(apiKeySettingKey(providerType));
+
+    // Model override (falls back to the preset default).
+    const modelOverride = await this.getSetting(modelSettingKey(providerType));
+
+    // Base URL override for providers that support it (everything except
+    // OpenAI, whose endpoint is fixed). Falls back to the preset default.
+    let baseURL = preset.baseURL;
+    if (meta.supportsBaseUrlOverride) {
+      const override = await this.getSetting(baseUrlSettingKey(providerType));
+      if (override) baseURL = override;
+    }
+
+    // Extra headers: merge preset headers with any admin-configured override.
+    // For OpenRouter, the preset HTTP-Referer / X-Title headers are applied
+    // automatically unless an explicit override is stored.
+    let extraHeaders = preset.extraHeaders;
+    if (meta.supportsExtraHeaders) {
+      const headersKey = extraHeadersSettingKey(providerType);
+      if (headersKey) {
+        const raw = await this.getSetting(headersKey);
+        if (raw) {
+          try {
+            extraHeaders = { ...(preset.extraHeaders || {}), ...JSON.parse(raw) };
+          } catch {
+            // Ignore invalid JSON, keep preset headers
+          }
+        }
+      }
+    }
 
     return new OpenAICompatibleProvider({
       ...preset,
-      apiKey: apiKeySetting || preset.apiKey,
-      defaultModel: modelSetting || preset.defaultModel,
+      baseURL,
+      apiKey: apiKey || preset.apiKey,
+      defaultModel: modelOverride || preset.defaultModel,
+      extraHeaders,
     });
   }
 
@@ -158,24 +187,23 @@ export class OpenAICompatibleProvider implements AIProvider {
    * Check if this provider is configured and available
    */
   async isAvailable(): Promise<boolean> {
-    // For custom providers, require both URL and key
+    // For custom providers, require a base URL. An API key is optional.
     if (this.name === "custom") {
-      const hasURL = !!this.config.baseURL;
-      const hasKey = !!this.config.apiKey;
-      return hasURL && hasKey;
+      return !!this.config.baseURL;
     }
 
-    // For presets, check if API key is configured
-    const apiKey = await OpenAICompatibleProvider.getSetting(
-      `ai_${this.name}_api_key`
-    );
-    
-    // Presets that don't need API keys (local servers)
+    // Presets that don't need API keys (local servers) are considered
+    // available as long as a base URL is configured.
     const noAuthPresets = ["ollama", "lmstudio"];
     if (noAuthPresets.includes(this.name)) {
-      return true; // Assume available if it's a local server
+      return true;
     }
 
+    // For other presets (openai, freellmapi, openrouter), require an API key.
+    // OpenAI reads the shared openai_api_key setting; others read their own.
+    const apiKey = await OpenAICompatibleProvider.getSetting(
+      apiKeySettingKey(this.name as AIProviderType)
+    );
     return !!apiKey;
   }
 
@@ -196,13 +224,48 @@ export class OpenAICompatibleProvider implements AIProvider {
    * Get the model to use for generation
    */
   private async getModel(): Promise<string> {
-    // Try to get from settings first
-    const settingKey = this.name === "custom" 
-      ? "ai_custom_model" 
-      : `ai_${this.name}_model`;
-    
-    const setting = await OpenAICompatibleProvider.getSetting(settingKey);
+    const setting = await OpenAICompatibleProvider.getSetting(
+      modelSettingKey(this.name as AIProviderType)
+    );
     return setting || this.config.defaultModel || "auto";
+  }
+
+  /**
+   * Test the connection to this provider without generating content.
+   *
+   * Lists models via the OpenAI-compatible /models endpoint. Never logs or
+   * returns the API key. Returns a simple success/failure with a sanitized
+   * message and the model that would be used.
+   */
+  async testConnection(): Promise<TestConnectionResult> {
+    const client = this.getClient();
+    const model = await this.getModel();
+    try {
+      const list = await client.models.list();
+      const modelIds: string[] = [];
+      for await (const m of list) {
+        if (m.id) modelIds.push(m.id);
+      }
+      return {
+        success: true,
+        message: "Connection successful",
+        model,
+        availableModels: modelIds.slice(0, 50),
+      };
+    } catch (err) {
+      const raw =
+        err instanceof Error ? err.message : "Unable to reach the provider";
+      // Strip anything that looks like a key or bearer token from the message.
+      const sanitized = raw
+        .replace(/Bearer [^\s]+/gi, "Bearer ***")
+        .replace(/(sk-[A-Za-z0-9_-]{6,})[^\s]*/g, "***")
+        .replace(/api[_-]?key[^\s]*/gi, "***");
+      return {
+        success: false,
+        message: `Connection failed: ${sanitized}`,
+        model,
+      };
+    }
   }
 
   /**

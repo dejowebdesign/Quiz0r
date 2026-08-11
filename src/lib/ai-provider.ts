@@ -15,11 +15,8 @@
  */
 
 import { prisma } from "@/lib/db";
-
-/**
- * Supported AI provider types
- */
-export type AIProviderType = "openai" | "freellmapi" | "openrouter" | "ollama" | "lmstudio" | "custom";
+import type { AIProviderType } from "@/lib/ai-provider-config";
+export { AIProviderType };
 
 /**
  * Quiz generation options passed to AI providers
@@ -119,6 +116,23 @@ export interface AIProvider {
    * @returns Raw AI response that will be normalized by Quiz0r
    */
   generateQuiz(options: QuizGenerationOptions): Promise<AIQuizResponse>;
+
+  /**
+   * Test the connection to this provider without generating content.
+   * Executes server-side, never exposes credentials.
+   */
+  testConnection(): Promise<TestConnectionResult>;
+}
+
+/**
+ * Result of a Test Connection request. Never contains secrets.
+ */
+export interface TestConnectionResult {
+  success: boolean;
+  message: string;
+  model: string;
+  /** Models reported by the provider, when available. */
+  availableModels?: string[];
 }
 
 /**

@@ -129,7 +129,7 @@ describe("OpenAICompatibleProvider", () => {
 
     it("freellmapi preset has correct baseURL", async () => {
       const { PRESET_PROVIDERS } = await import("@/lib/providers/openai-compatible-provider");
-      expect(PRESET_PROVIDERS.freellmapi.baseURL).toContain("localhost");
+      expect(PRESET_PROVIDERS.freellmapi.baseURL).toBe("http://umbrel.local:3001/v1");
       expect(PRESET_PROVIDERS.freellmapi.defaultModel).toBe("auto");
     });
 
@@ -245,6 +245,7 @@ describe("AI Types and Interfaces", () => {
       name: "test",
       isAvailable: async () => true,
       generateQuiz: async () => ({ title: "", questions: [] }),
+      testConnection: async () => ({ success: true, message: "ok", model: "test" }),
     };
 
     expect(mockProvider.name).toBe("test");
