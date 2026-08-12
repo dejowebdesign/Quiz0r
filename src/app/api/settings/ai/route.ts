@@ -11,6 +11,7 @@ import {
   extraHeadersSettingKey,
   type AIProviderType,
 } from "@/lib/ai-provider-config";
+import { isAIGenerationAvailable } from "@/lib/ai-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +97,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ provider, providers });
+    return NextResponse.json({
+      provider,
+      providers,
+      // Whether the currently selected provider is configured/available,
+      // so the Admin UI can show the "Create Quiz using AI" button for every
+      // provider (not just OpenAI). Computed server-side via the existing
+      // isAIGenerationAvailable() helper (DB-only, no network call).
+      available: await isAIGenerationAvailable(),
+    });
   } catch (error) {
     console.error("Failed to get AI settings:", error);
     return NextResponse.json(

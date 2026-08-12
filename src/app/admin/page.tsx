@@ -57,6 +57,12 @@ import {
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SupportedLanguages, type LanguageCode } from "@/types";
 
 const LanguageMap = SupportedLanguages as Record<
@@ -79,7 +85,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasOpenaiKey, setHasOpenaiKey] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const [hasUnsplashKey, setHasUnsplashKey] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -107,11 +113,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const res = await fetch("/api/settings");
-        if (res.ok) {
-          const data = await res.json();
-          setHasOpenaiKey(!!data.hasOpenaiApiKey);
+        const [settingsRes, aiRes] = await Promise.all([
+          fetch("/api/settings"),
+          fetch("/api/settings/ai"),
+        ]);
+        if (settingsRes.ok) {
+          const data = await settingsRes.json();
           setHasUnsplashKey(!!data.hasUnsplashApiKey);
+        }
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          // Server-side check: is the selected provider configured/available?
+          // Works for OpenAI, FreeLLMAPI, OpenRouter, Ollama, LM Studio, Custom.
+          setAiAvailable(!!aiData.available);
         }
       } catch (error) {
         console.error("Failed to load settings:", error);
@@ -310,7 +324,7 @@ export default function AdminDashboard() {
             <Upload className="w-4 h-4 mr-2" />
             Import Quiz
           </Button>
-          {hasOpenaiKey && (
+          {aiAvailable ? (
             <Button
               variant="secondary"
               onClick={() => {
@@ -322,6 +336,20 @@ export default function AdminDashboard() {
               <Sparkles className="w-4 h-4" />
               Create Quiz using AI
             </Button>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="secondary" disabled className="gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Create Quiz using AI
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Configure an AI provider in Settings
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
           <Link href="/admin/quiz/new">
             <Button>
