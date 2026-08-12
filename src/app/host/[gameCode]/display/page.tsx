@@ -14,6 +14,7 @@ import { AspectRatioHelper } from "@/components/display/AspectRatioHelper";
 import { BORDER_RADIUS_MAP, SHADOW_MAP } from "@/types/theme";
 import { getContrastingTextColor } from "@/lib/color-utils";
 import { SupportedLanguages } from "@/types";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function HostDisplayPage({
   params,
@@ -21,6 +22,7 @@ export default function HostDisplayPage({
   params: Promise<{ gameCode: string }>;
 }) {
   const { gameCode } = use(params);
+  const { t } = useTranslation();
   const [baseUrl, setBaseUrl] = useState("");
   const [shortUrl, setShortUrl] = useState<string | null>(null);
   const [urlReady, setUrlReady] = useState(false);
@@ -226,7 +228,7 @@ export default function HostDisplayPage({
                 {gameState.quizTitle}
               </h1>
               <div className="flex items-center justify-center gap-2 text-lg md:text-xl text-muted-foreground">
-                <span>Waiting for players</span>
+                <span>{t("host.waitingForPlayers")}</span>
                 <span className="flex gap-1">
                   <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
                   <span className="animate-bounce" style={{ animationDelay: "150ms" }}>.</span>
@@ -247,7 +249,7 @@ export default function HostDisplayPage({
                   />
                 </Card>
                 <div className="text-center lg:text-left">
-                  <p className="text-sm md:text-base text-muted-foreground mb-3">Scan QR or enter code</p>
+                  <p className="text-sm md:text-base text-muted-foreground mb-3">{t("host.scanQrOrEnterCode")}</p>
                   <p className="text-5xl md:text-6xl lg:text-7xl font-mono font-bold tracking-widest text-primary">
                     {gameCode}
                   </p>
@@ -341,7 +343,7 @@ export default function HostDisplayPage({
             {currentQuestion.imageUrl && (
               <img
                 src={currentQuestion.imageUrl}
-                alt="Section"
+                alt={t("host.section")}
                 className="max-h-80 mx-auto rounded-xl shadow-2xl"
               />
             )}
@@ -370,7 +372,7 @@ export default function HostDisplayPage({
           >
             <div className="flex flex-col items-center gap-4 text-amber-200">
               <AlarmClock className="w-14 h-14 animate-bounce" />
-              <h2 className="text-4xl font-bold text-white">Time&apos;s up!</h2>
+              <h2 className="text-4xl font-bold text-white">{t("player.timesUp")}</h2>
               <p className="text-lg text-amber-100/80 max-w-xl">
                 The host will reveal the answers shortly.
               </p>
@@ -425,7 +427,7 @@ export default function HostDisplayPage({
                   {currentQuestion.imageUrl && (
                     <img
                       src={currentQuestion.imageUrl}
-                      alt="Question"
+                      alt={t("player.question")}
                       className="max-h-64 mx-auto rounded-lg shadow-lg"
                     />
                   )}
@@ -525,7 +527,7 @@ export default function HostDisplayPage({
           <BackgroundEffects theme={theme} />
           <div className="max-w-3xl mx-auto relative z-10 px-4">
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-8">
-              {isFinished ? "Final Results" : "Scoreboard"}
+              {isFinished ? t("host.finalResults") : t("host.scoreboard")}
             </h1>
 
             {/* Podium for final */}
@@ -711,7 +713,7 @@ export default function HostDisplayPage({
         <BackgroundEffects theme={theme} />
         <div className="text-center relative z-10">
           <h1 className="text-3xl font-bold">{gameState.quizTitle}</h1>
-          <p className="text-muted-foreground mt-2">Game in progress...</p>
+          <p className="text-muted-foreground mt-2">{t("host.gameInProgress")}</p>
         </div>
       </div>
       <AspectRatioHelper />

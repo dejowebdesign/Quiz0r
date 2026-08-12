@@ -33,7 +33,7 @@ const DEFAULT_LOCALE: AppLocale = "en";
 interface I18nContextType {
   locale: AppLocale;
   setLocale: (locale: AppLocale) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   availableLocales: typeof AppSupportedLocales;
   htmlLang: string;
 }
@@ -76,24 +76,27 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   // Translation function - English is the master fallback
   const t = useCallback(
-    (key: string): string => {
+    (key: string, params?: Record<string, string | number>): string => {
       const currentLocale = locales[locale];
       const value = getNestedValue(currentLocale, key);
 
+      let result: string;
       if (value !== undefined) {
-        return value;
+        result = value;
+      } else {
+        // Fallback to master locale (English) for any missing translation
+        const masterLocaleData = locales[MASTER_LOCALE];
+        const fallback = getNestedValue(masterLocaleData, key);
+        result = fallback !== undefined ? fallback : key;
       }
 
-      // Fallback to master locale (English) for any missing translation
-      const masterLocaleData = locales[MASTER_LOCALE];
-      const fallback = getNestedValue(masterLocaleData, key);
-
-      if (fallback !== undefined) {
-        return fallback;
+      // Interpolate {param} placeholders
+      if (params) {
+        result = result.replace(/\{(\w+)\}/g, (_, name: string) =>
+          name in params ? String(params[name]) : `{${name}}`
+        );
       }
-
-      // Return the key itself as last resort
-      return key;
+      return result;
     },
     [locale]
   );

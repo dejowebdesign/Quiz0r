@@ -34,6 +34,16 @@ The application interface is available in multiple languages:
 
 Application language and quiz-content language are separate systems. The player interface supports application language selection, while quiz content can be generated or translated into different languages.
 
+**Language selection:** A language selector on the start page (homepage) lets users pick the application language. The choice is persisted in `localStorage` and applies to the entire Quiz0r UI (start page, menu, player lobby, join screen, host controls, and host display).
+
+**I18n architecture:**
+- `src/contexts/I18nContext.tsx` — `I18nProvider` holding the active locale and the `t(key, params?)` translation function. `t()` supports `{param}` interpolation, e.g. `t("player.questionOf", { current: 3, total: 10 })`.
+- `src/hooks/useTranslation.ts` — re-exports `t`, `locale`, `setLocale`, and `availableLocales`.
+- `src/lib/locales/{en,de,sr}.json` — shared translation files namespaced by `app`, `menu`, `player`, `host`, `admin`, and quiz-content sections. English is the master/fallback; missing keys fall back to English.
+- `src/components/ui/language-selector.tsx` — reusable `<LanguageSelector />` dropdown (used on the start page).
+
+To add another application language: add an entry to `AppSupportedLocales` in `I18nContext.tsx`, import a new `src/lib/locales/<code>.json` file, and translate the keys.
+
 ### Question Types
 
 Current implemented question types:
@@ -205,9 +215,15 @@ docker compose logs -f   # wait for "Ready on http://localhost:3000"
 │  │  ├─ certificate/                       # Certificate status/download/regeneration
 │  │  ├─ theme/                             # Theme provider and background effects
 │  │  └─ display/AspectRatioHelper.tsx      # Host display scaling helper
-│  ├─ contexts/                             # React contexts (dark mode)
-│  ├─ hooks/                                # Client hooks (Socket.io connection, quiz preloading)
+│  ├─ contexts/                             # React contexts (dark mode, i18n)
+│  │  ├─ DarkModeContext.tsx                # Dark mode provider
+│  │  └─ I18nContext.tsx                    # I18n provider with t() translation function
+│  ├─ hooks/                                # Client hooks (Socket.io, quiz preloading, translations)
+│  │  ├─ useSocket.ts                       # Socket.io connection hook
+│  │  ├─ useQuizPreloader.ts                # Quiz preloading hook
+│  │  └─ useTranslation.ts                  # Hook exposing t(), locale, setLocale
 │  ├─ lib/                                  # Services and utilities
+│  │  ├─ locales/{en,de,sr}.json            # Application UI translation files
 │  │  ├─ openai-*.ts                        # AI quiz/theme/translation helpers
 │  │  ├─ certificate-*                      # Certificate generation and helpers
 │  │  ├─ theme-*.ts                         # Theme presets, contrast, color utilities

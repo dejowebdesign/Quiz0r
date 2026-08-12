@@ -31,6 +31,7 @@ export const SupportedLanguages = {
   pt: { code: 'pt', name: 'Portuguese', flag: '🇵🇹', nativeName: 'Português' },
   ru: { code: 'ru', name: 'Russian', flag: '🇷🇺', nativeName: 'Русский' },
   it: { code: 'it', name: 'Italian', flag: '🇮🇹', nativeName: 'Italiano' },
+  sr: { code: 'sr', name: 'Serbian', flag: '🇷🇸', nativeName: 'Srpski' },
 } as const;
 
 export type LanguageCode = keyof typeof SupportedLanguages;

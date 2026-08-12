@@ -53,6 +53,7 @@ import { CertificateDownloadButton } from "@/components/certificate/CertificateD
 import { CertificateStatusBanner } from "@/components/certificate/CertificateStatusBanner";
 import { CertificateRegenerationPanel } from "@/components/certificate/CertificateRegenerationPanel";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function HostControlPage({
   params,
@@ -60,6 +61,7 @@ export default function HostControlPage({
   params: Promise<{ gameCode: string }>;
 }) {
   const { gameCode } = use(params);
+  const { t } = useTranslation();
   const {
     connected,
     gameState,
@@ -285,7 +287,7 @@ export default function HostControlPage({
             Game Cancelled
           </div>
           <Link href="/host">
-            <Button>Back to Host</Button>
+            <Button>{t("host.backToHost")}</Button>
           </Link>
         </div>
       </div>
@@ -300,7 +302,7 @@ export default function HostControlPage({
             Game not found
           </div>
           <Link href="/host">
-            <Button>Back to Host</Button>
+            <Button>{t("host.backToHost")}</Button>
           </Link>
         </div>
       </div>
@@ -362,24 +364,24 @@ export default function HostControlPage({
                 {copied ? (
                   <>
                     <Check className="w-4 h-4 text-green-500" />
-                    <span className="hidden sm:inline">Copied!</span>
+                    <span className="hidden sm:inline">{t("host.copied")}</span>
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Copy URL</span>
+                    <span className="hidden sm:inline">{t("host.copyUrl")}</span>
                   </>
                 )}
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={openMonitor} className="px-2 sm:px-3">
               <Eye className="w-4 h-4" />
-              <span className="hidden sm:inline ml-2">Player Monitor</span>
+              <span className="hidden sm:inline ml-2">{t("host.playerMonitor")}</span>
               <ExternalLink className="w-3 h-3 ml-1 sm:ml-2 hidden sm:inline" />
             </Button>
             <Button variant="outline" size="sm" onClick={openDisplay} className="px-2 sm:px-3">
               <Monitor className="w-4 h-4" />
-              <span className="hidden sm:inline ml-2">Open Display</span>
+              <span className="hidden sm:inline ml-2">{t("host.openDisplay")}</span>
               <ExternalLink className="w-3 h-3 ml-1 sm:ml-2 hidden sm:inline" />
             </Button>
           </div>
@@ -453,7 +455,7 @@ export default function HostControlPage({
                       return (
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Answered</span>
+                            <span className="text-muted-foreground">{t("host.answered")}</span>
                             <span className="font-medium">{answeredCount} / {activeAdmitted.length}</span>
                           </div>
                           <Progress value={progressPercent} className="h-2" />
@@ -468,17 +470,15 @@ export default function HostControlPage({
             {/* Control Buttons */}
             <Card>
               <CardHeader>
-                <CardTitle>Game Controls</CardTitle>
+                <CardTitle>{t("host.gameControls")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {gameState.status === "WAITING" && (
                   <div className="space-y-4">
                     <p className="text-muted-foreground">
                       {gameState.players.length === 0
-                        ? "Waiting for players to join..."
-                        : `${gameState.players.length} player${
-                            gameState.players.length !== 1 ? "s" : ""
-                          } ready`}
+                        ? t("host.waitingForPlayers")
+                        : t("host.playersAnswered", { answered: gameState.players.length, total: gameState.players.length })}
                     </p>
                     <Button
                       onClick={handleStartGame}
@@ -487,7 +487,7 @@ export default function HostControlPage({
                       className="w-full"
                     >
                       <Play className="w-4 h-4 mr-2" />
-                      Start Game
+                      {t("host.startGame")}
                     </Button>
                     <Button
                       onClick={cancelGame}
@@ -503,7 +503,7 @@ export default function HostControlPage({
                 {gameState.status === "ACTIVE" && (
                   <div className="space-y-4 text-center py-4">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
-                    <p className="text-muted-foreground">Starting game...</p>
+                    <p className="text-muted-foreground">{t("host.startingGame")}</p>
                   </div>
                 )}
 
@@ -521,8 +521,8 @@ export default function HostControlPage({
                       <p className="text-lg">{currentQuestion?.questionText}</p>
                       <p className="text-sm text-muted-foreground mt-2">
                         {currentQuestion?.questionType === "MULTI_SELECT"
-                          ? "Multi-select"
-                          : "Single select"}{" "}
+                          ? t("host.multiSelect")
+                          : t("host.singleSelect")}{" "}
                         • {currentQuestion?.points} points •{" "}
                         {currentQuestion?.timeLimit}s
                       </p>
@@ -531,7 +531,7 @@ export default function HostControlPage({
                       <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <StickyNote className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                          <p className="font-medium text-amber-800 dark:text-amber-300 text-sm">Host Notes</p>
+                          <p className="font-medium text-amber-800 dark:text-amber-300 text-sm">{t("host.hostNotes")}</p>
                         </div>
                         <p className="text-amber-900 dark:text-amber-200 text-sm whitespace-pre-wrap">{currentQuestion.hostNotes}</p>
                       </div>
@@ -545,7 +545,7 @@ export default function HostControlPage({
                       return (
                         <div className="flex items-center justify-between">
                           <div className="text-sm text-muted-foreground">
-                            {answeredCount} of {activeAdmitted.length} players answered
+                            {t("host.playersAnswered", { answered: answeredCount, total: activeAdmitted.length })}
                           </div>
                           {allAnswered && (
                             <Button onClick={skipTimer} variant="secondary" size="sm">
@@ -564,7 +564,7 @@ export default function HostControlPage({
                     <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                        <p className="font-medium text-indigo-800 dark:text-indigo-300">Section</p>
+                        <p className="font-medium text-indigo-800 dark:text-indigo-300">{t("host.section")}</p>
                       </div>
                       <p className="text-xl font-bold text-indigo-900 dark:text-indigo-100">
                         {currentQuestion?.questionText}
@@ -579,7 +579,7 @@ export default function HostControlPage({
                       <div className="rounded-lg overflow-hidden border">
                         <img
                           src={currentQuestion.imageUrl}
-                          alt="Section"
+                          alt={t("host.section")}
                           className="max-h-48 mx-auto"
                         />
                       </div>
@@ -600,7 +600,7 @@ export default function HostControlPage({
                       <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center justify-between">
                         <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
                           <Bell className="w-4 h-4" />
-                          <span className="font-medium">Time&apos;s up! Reveal answers when ready.</span>
+                          <span className="font-medium">{t("host.timesUpReveal")}</span>
                         </div>
                         <Button onClick={revealAnswers} variant="secondary" size="sm">
                           <Eye className="w-4 h-4 mr-2" />
@@ -616,7 +616,7 @@ export default function HostControlPage({
                       <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <StickyNote className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                          <p className="font-medium text-amber-800 dark:text-amber-300 text-sm">Host Notes</p>
+                          <p className="font-medium text-amber-800 dark:text-amber-300 text-sm">{t("host.hostNotes")}</p>
                         </div>
                         <p className="text-amber-900 dark:text-amber-200 text-sm whitespace-pre-wrap">{currentQuestion.hostNotes}</p>
                       </div>
@@ -634,7 +634,7 @@ export default function HostControlPage({
                         </div>
                         {nextQuestionPreview.section ? (
                           <div className="p-3 bg-indigo-100/70 dark:bg-indigo-800/30 rounded border border-indigo-200 dark:border-indigo-700">
-                            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">Section</p>
+                            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">{t("host.section")}</p>
                             <p className="text-indigo-900 dark:text-indigo-100">
                               {nextQuestionPreview.section.questionText}
                             </p>
@@ -683,12 +683,12 @@ export default function HostControlPage({
                       {gameState.currentQuestionNumber < gameState.totalQuestions ? (
                         <Button onClick={nextQuestion} className="flex-1" disabled={awaitingReveal}>
                           <SkipForward className="w-4 h-4 mr-2" />
-                          Next Question
+                          {t("host.nextQuestion")}
                         </Button>
                       ) : (
                         <Button onClick={endGame} variant="destructive" className="flex-1" disabled={awaitingReveal}>
                           <Square className="w-4 h-4 mr-2" />
-                          End Game
+                          {t("host.endGame")}
                         </Button>
                       )}
                     </div>
@@ -713,7 +713,7 @@ export default function HostControlPage({
                         </div>
                         {nextQuestionPreview.section ? (
                           <div className="p-3 bg-indigo-100/70 dark:bg-indigo-800/30 rounded border border-indigo-200 dark:border-indigo-700">
-                            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">Section</p>
+                            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-200 mb-1">{t("host.section")}</p>
                             <p className="text-indigo-900 dark:text-indigo-100">
                               {nextQuestionPreview.section.questionText}
                             </p>
@@ -762,7 +762,7 @@ export default function HostControlPage({
                         className="w-full"
                       >
                         <Square className="w-4 h-4 mr-2" />
-                        End Game
+                        {t("host.endGame")}
                       </Button>
                     )}
                   </div>
@@ -809,7 +809,7 @@ export default function HostControlPage({
                   <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3">
                     <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
                       <AlertTriangle className="w-5 h-5" />
-                      <span className="font-medium">Unexpected game state: {gameState.status}</span>
+                      <span className="font-medium">{t("host.unexpectedGameState", { status: gameState.status })}</span>
                     </div>
                     <p className="text-sm text-amber-700 dark:text-amber-300">
                       The game entered an unexpected state. Try refreshing the page or ending the game.
@@ -819,7 +819,7 @@ export default function HostControlPage({
                         Refresh Page
                       </Button>
                       <Button onClick={endGame} variant="destructive" size="sm">
-                        End Game
+                        {t("host.endGame")}
                       </Button>
                     </div>
                   </div>
@@ -847,7 +847,7 @@ export default function HostControlPage({
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
-                      <span>Player Answers</span>
+                      <span>{t("host.playerAnswers")}</span>
                       <Badge variant="secondary">
                         {currentAnswers.length} / {gameState.players.length}
                       </Badge>
@@ -857,7 +857,7 @@ export default function HostControlPage({
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {currentAnswers.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-4">
-                          Waiting for answers...
+                          {t("host.waitingForAnswers")}
                         </p>
                       ) : (
                         currentAnswers
@@ -929,7 +929,7 @@ export default function HostControlPage({
             {gameState.autoAdmit ? (
               <div className="flex items-center gap-2 px-3 py-2 bg-green-100/50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span className="text-sm text-green-700 dark:text-green-400">Auto-admit enabled</span>
+                <span className="text-sm text-green-700 dark:text-green-400">{t("host.autoAdmitEnabled")}</span>
               </div>
             ) : (
               <Card className="border-yellow-300 dark:border-yellow-700">
@@ -941,7 +941,7 @@ export default function HostControlPage({
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Requires Approval</span>
+                    <span className="text-sm">{t("host.requiresApproval")}</span>
                     {admissionRequests.length > 0 && (
                       <Badge variant="destructive" className="animate-pulse">
                         {admissionRequests.length} pending
@@ -974,7 +974,7 @@ export default function HostControlPage({
                             size="sm"
                             onClick={() => handleAdmitPlayer(request.playerId)}
                             className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-initial"
-                            title="Admit player to game"
+                            title={t("host.admitPlayer")}
                           >
                             <UserCheck className="w-4 h-4 mr-1" />
                             Admit
@@ -983,7 +983,7 @@ export default function HostControlPage({
                             size="sm"
                             variant="destructive"
                             onClick={() => handleRefusePlayer(request.playerId)}
-                            title="Refuse player admission"
+                            title={t("host.refusePlayer")}
                             className="flex-1 sm:flex-initial"
                           >
                             <UserX className="w-4 h-4 mr-1" />
@@ -1019,7 +1019,7 @@ export default function HostControlPage({
                 <div className="relative mt-2">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search players..."
+                    placeholder={t("host.searchPlayers")}
                     value={playerSearch}
                     onChange={(e) => setPlayerSearch(e.target.value)}
                     className="pl-9 h-9"
@@ -1094,7 +1094,7 @@ export default function HostControlPage({
                         <div className="flex items-center gap-1.5 shrink-0">
                           {/* Answered indicator during question */}
                           {gameState.status === "QUESTION" && playerInfo?.hasAnswered && (
-                            <span title="Answered">
+                            <span title={t("host.answered")}>
                               <CheckCircle2 className="w-4 h-4 text-green-500" />
                             </span>
                           )}
@@ -1142,7 +1142,7 @@ export default function HostControlPage({
                         <button
                           onClick={() => handleRemovePlayer(player.playerId, player.name)}
                           className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors shrink-0"
-                          title="Remove player"
+                          title={t("host.removePlayer")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -1165,10 +1165,9 @@ export default function HostControlPage({
       <Dialog open={removeDialogOpen} onOpenChange={setRemoveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Player?</DialogTitle>
+            <DialogTitle>{t("host.removePlayer")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove <strong>{playerToRemove?.name}</strong> from the game?
-              They will be able to request to rejoin.
+              {t("host.removePlayerDesc", { name: playerToRemove?.name ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1176,13 +1175,13 @@ export default function HostControlPage({
               variant="outline"
               onClick={() => setRemoveDialogOpen(false)}
             >
-              Cancel
+              {t("host.cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={confirmRemovePlayer}
             >
-              Remove Player
+              {t("host.removePlayer")}
             </Button>
           </DialogFooter>
         </DialogContent>

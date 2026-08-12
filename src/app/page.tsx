@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DarkModeToggle } from "@/components/ui/dark-mode-toggle";
+import { LanguageSelector } from "@/components/ui/language-selector";
 import { ChevronRight } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Large pool of quiz-related emoji
 const emojiPool = [
@@ -84,6 +86,7 @@ function generateEmoji(isLargeScreen: boolean) {
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const [isMouseOnScreen, setIsMouseOnScreen] = useState(false);
   const [isLargeScreen, setIsLargeScreen] = useState(false);
@@ -129,8 +132,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen relative overflow-hidden">
-      {/* Dark mode toggle in top-right */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* Dark mode toggle + language selector in top-right */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <LanguageSelector className="w-[140px]" />
         <DarkModeToggle showLabel={false} />
       </div>
 
@@ -179,7 +183,7 @@ export default function Home() {
         <div className="text-center hero-float">
           <div className="flex items-center justify-center gap-2 mb-6 fade-in-up">
             <span className="text-sm font-medium text-muted-foreground bg-muted px-4 py-1.5 rounded-full">
-              Real-time multiplayer quizzes
+              {t("app.badge")}
             </span>
           </div>
 
@@ -188,7 +192,7 @@ export default function Home() {
           </h1>
 
           <p className="text-xl sm:text-2xl text-muted-foreground max-w-xl mx-auto mb-12 fade-in-up-delay-2">
-            Create, host, and play interactive quizzes in real-time
+            {t("app.tagline")}
           </p>
 
           <div className="fade-in-up-delay-2">
@@ -198,7 +202,7 @@ export default function Home() {
               className="text-lg px-10 py-7 min-w-[200px] bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-600 hover:via-orange-600 hover:to-red-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <Link href="/menu" className="flex items-center gap-2">
-                Continue
+                {t("app.continue")}
                 <ChevronRight className="w-5 h-5" />
               </Link>
             </Button>
@@ -208,7 +212,7 @@ export default function Home() {
         {/* Footer */}
         <div className="absolute bottom-6 text-center text-sm text-muted-foreground fade-in-up-delay-2">
           <p>
-            Built by{" "}
+            {t("app.builtBy")}{" "}
             <a
               href="https://err0r.dev"
               target="_blank"

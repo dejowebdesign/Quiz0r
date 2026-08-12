@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function JoinPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [gameCode, setGameCode] = useState("");
   const [error, setError] = useState("");
   const [isExternal, setIsExternal] = useState(true); // Default to external (hide back link)
@@ -27,12 +29,12 @@ export default function JoinPage() {
 
     const code = gameCode.trim().toUpperCase();
     if (!code) {
-      setError("Please enter a game code");
+      setError(t("player.pleaseEnterCode"));
       return;
     }
 
     if (code.length !== 6) {
-      setError("Game code must be 6 characters");
+      setError(t("player.codeMustBe6"));
       return;
     }
 
@@ -52,7 +54,7 @@ export default function JoinPage() {
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
+            {t("player.back")}
           </Link>
         </header>
       )}
@@ -68,10 +70,10 @@ export default function JoinPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Game Code</label>
+                <label className="text-sm font-medium">{t("player.gameCode")}</label>
                 <Input
                   type="text"
-                  placeholder="Enter code..."
+                  placeholder={t("player.enterCode")}
                   value={gameCode}
                   onChange={(e) =>
                     setGameCode(e.target.value.toUpperCase().slice(0, 6))
@@ -86,7 +88,7 @@ export default function JoinPage() {
               </div>
 
               <Button type="submit" size="lg" className="w-full">
-                Join Game
+                {t("player.joinGame")}
               </Button>
             </form>
           </CardContent>

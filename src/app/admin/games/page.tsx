@@ -9,8 +9,10 @@ import { GameListItem, GameFilters } from "@/types/admin";
 import { GameCard } from "@/components/admin/GameCard";
 import { GameSidePanel } from "@/components/admin/GameSidePanel";
 import { GamePagination } from "@/components/admin/GamePagination";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function GamesPage() {
+  const { t } = useTranslation();
   const [games, setGames] = useState<GameListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
@@ -72,9 +74,9 @@ export default function GamesPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Games</h1>
+        <h1 className="text-3xl font-bold">{t("games.title")}</h1>
         <p className="text-muted-foreground mt-1">
-          View and manage your game sessions
+          {t("games.description")}
         </p>
       </div>
 
@@ -87,16 +89,16 @@ export default function GamesPage() {
           }
         >
           <TabsList>
-            <TabsTrigger value="RUNNING">Running</TabsTrigger>
-            <TabsTrigger value="FINISHED">History</TabsTrigger>
-            <TabsTrigger value="ALL">All</TabsTrigger>
+            <TabsTrigger value="RUNNING">{t("games.running")}</TabsTrigger>
+            <TabsTrigger value="FINISHED">{t("games.history")}</TabsTrigger>
+            <TabsTrigger value="ALL">{t("games.all")}</TabsTrigger>
           </TabsList>
         </Tabs>
 
         <div className="relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by game code or quiz name..."
+            placeholder={t("games.searchPlaceholder")}
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             className="pl-10"
@@ -107,12 +109,12 @@ export default function GamesPage() {
       {/* Game Grid */}
       {loading ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-muted-foreground">Loading games...</div>
+          <div className="text-muted-foreground">{t("games.loadingGames")}</div>
         </div>
       ) : games.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <p className="text-muted-foreground">No games found</p>
+            <p className="text-muted-foreground">{t("games.noGamesFound")}</p>
           </CardContent>
         </Card>
       ) : (

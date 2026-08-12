@@ -45,7 +45,7 @@ export default function PlayerGamePage({
 }) {
   const { gameCode } = use(params);
   const router = useRouter();
-  const { locale: appLocale, setLocale: setAppLocale } = useTranslation();
+  const { locale: appLocale, setLocale: setAppLocale, t } = useTranslation();
   const [playerName, setPlayerName] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
@@ -144,13 +144,13 @@ export default function PlayerGamePage({
     // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      setJoinError("Invalid file type. Use JPEG, PNG, GIF, or WebP");
+      setJoinError(t("errors.invalidFileType"));
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setJoinError("Image too large. Maximum size is 5MB");
+      setJoinError(t("errors.imageTooLarge"));
       return;
     }
 
@@ -173,10 +173,10 @@ export default function PlayerGamePage({
         setSelectedEmoji(null); // Clear emoji when image is selected
       } else {
         const data = await res.json();
-        setJoinError(data.error || "Failed to upload image");
+        setJoinError(data.error || t("errors.uploadFailed"));
       }
     } catch {
-      setJoinError("Failed to upload image");
+      setJoinError(t("errors.uploadFailed"));
     } finally {
       setUploadingImage(false);
     }
@@ -745,11 +745,11 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2 border-yellow-500">
             <CardContent className="pt-6 text-center">
               <Bell className="w-12 h-12 mx-auto text-yellow-500 mb-4" />
-              <p className="text-lg font-bold mb-2">Waiting for Admission</p>
+              <p className="text-lg font-bold mb-2">{t("player.waitingAdmission")}</p>
               <p className="text-muted-foreground">
                 {playerRemoved
-                  ? "You were removed from this game. Your request to rejoin is pending host approval."
-                  : "Your request to join is pending host approval."}
+                  ? t("player.waitingAdmissionRemovedDesc")
+                  : t("player.waitingAdmissionDesc")}
               </p>
               <div className="mt-4 flex items-center justify-center gap-2">
                 <div className="animate-pulse flex gap-1">
@@ -781,16 +781,16 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2 border-destructive">
             <CardContent className="pt-6 text-center">
               <UserX className="w-12 h-12 mx-auto text-destructive mb-4" />
-              <p className="text-lg font-bold text-destructive mb-2">Admission Refused</p>
+              <p className="text-lg font-bold text-destructive mb-2">{t("player.admissionRefused")}</p>
               <p className="text-muted-foreground">
-                The host has refused your request to join this game. Please contact the game host.
+                {t("player.admissionRefusedDesc")}
               </p>
               <Button
                 onClick={() => router.push("/play")}
                 className="mt-6"
                 variant="outline"
               >
-                Join Another Game
+                {t("player.joinAnotherGame")}
               </Button>
             </CardContent>
           </Card>
@@ -815,16 +815,16 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2 border-destructive">
             <CardContent className="pt-6 text-center">
               <X className="w-12 h-12 mx-auto text-destructive mb-4" />
-              <p className="text-lg font-bold text-destructive mb-2">Removed from Game</p>
+              <p className="text-lg font-bold text-destructive mb-2">{t("player.removedFromGame")}</p>
               <p className="text-muted-foreground">
-                {removalReason || "You have been removed from the game. Please contact the game host."}
+                {removalReason || t("player.removedDesc")}
               </p>
               <Button
                 onClick={() => router.push("/play")}
                 className="mt-6"
                 variant="outline"
               >
-                Join Another Game
+                {t("player.joinAnotherGame")}
               </Button>
             </CardContent>
           </Card>
@@ -849,10 +849,10 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2">
             <CardContent className="pt-6 text-center">
               <X className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Game Cancelled</p>
-              <p className="text-muted-foreground mt-2">The host has cancelled this game.</p>
+              <p className="text-lg font-medium">{t("player.gameCancelled")}</p>
+              <p className="text-muted-foreground mt-2">{t("player.gameCancelledDesc")}</p>
               <Button onClick={() => router.push("/play")} className="mt-4">
-                Join Another Game
+                {t("player.joinAnotherGame")}
               </Button>
             </CardContent>
           </Card>
@@ -878,7 +878,7 @@ export default function PlayerGamePage({
               <X className="w-12 h-12 mx-auto text-destructive mb-4" />
               <p className="text-lg font-medium text-destructive">{error}</p>
               <Button onClick={() => router.push("/play")} className="mt-4">
-                Try Another Code
+                {t("player.tryAnotherCode")}
               </Button>
             </CardContent>
           </Card>
@@ -902,7 +902,7 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2">
             <CardContent className="pt-6 text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-muted-foreground">Checking game...</p>
+              <p className="text-muted-foreground">{t("player.checkingGame")}</p>
             </CardContent>
           </Card>
         </div>
@@ -925,12 +925,12 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2">
             <CardContent className="pt-6 text-center">
               <X className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Game Not Found</p>
+              <p className="text-lg font-medium">{t("player.gameNotFound")}</p>
               <p className="text-muted-foreground mt-2">
-                This game code doesn&apos;t exist. Please check the code and try again.
+                {t("player.gameNotFoundDesc")}
               </p>
               <Button onClick={() => router.push("/play")} className="mt-4">
-                Enter Different Code
+                {t("player.enterDifferentCode")}
               </Button>
             </CardContent>
           </Card>
@@ -954,12 +954,12 @@ export default function PlayerGamePage({
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2">
             <CardContent className="pt-6 text-center">
               <X className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Game Has Ended</p>
+              <p className="text-lg font-medium">{t("player.gameHasEnded")}</p>
               <p className="text-muted-foreground mt-2">
-                This game is no longer accepting new players.
+                {t("player.gameEndedDesc")}
               </p>
               <Button onClick={() => router.push("/play")} className="mt-4">
-                Join Another Game
+                {t("player.joinAnotherGame")}
               </Button>
             </CardContent>
           </Card>
@@ -982,16 +982,16 @@ export default function PlayerGamePage({
           <BackgroundEffects theme={joinTheme} />
           <Card className="w-full max-w-sm relative z-10 shadow-2xl border-2">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Join Game</CardTitle>
+              <CardTitle className="text-2xl">{t("player.joinGame")}</CardTitle>
               <p className="text-muted-foreground font-mono text-lg">{gameCode}</p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleJoin} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Your Name</label>
+                  <label className="text-sm font-medium">{t("player.yourName")}</label>
                   <Input
                     type="text"
-                    placeholder="Enter your name..."
+                    placeholder={t("player.enterName")}
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value.slice(0, 20))}
                     className="text-center text-lg h-12"
@@ -1001,7 +1001,7 @@ export default function PlayerGamePage({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Choose Your Avatar</label>
+                  <label className="text-sm font-medium">{t("player.chooseAvatar")}</label>
 
                   {/* Avatar Preview */}
                   {(avatarImage || selectedEmoji) && (
@@ -1177,7 +1177,7 @@ export default function PlayerGamePage({
           <BackgroundEffects theme={theme} />
           <div className="text-center relative z-10">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Connecting to game...</p>
+            <p className="text-muted-foreground">{t("player.connectingToGame")}</p>
           </div>
         </div>
       </ThemeProvider>
@@ -1209,12 +1209,12 @@ export default function PlayerGamePage({
           <BackgroundEffects theme={theme} />
           <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="text-center mb-8 space-y-2">
-              <p className="text-xs uppercase tracking-[0.3em] text-primary/80">Lobby</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-primary/80">{t("player.lobby")}</p>
               <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
-                {gameState.quizTitle || "Get ready for the quiz"}
+                {gameState.quizTitle || t("player.getReadyForQuiz")}
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                Warm up while we set the stage. Here&apos;s how to score big and use your power-ups wisely.
+                {t("player.lobbySubtitle")}
               </p>
             </div>
 
@@ -1240,23 +1240,23 @@ export default function PlayerGamePage({
                       </div>
                     )}
                     <div className="space-y-1">
-                      <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">You&apos;re in</p>
+                      <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">{t("player.youreIn")}</p>
                       <h2 className="text-2xl sm:text-3xl font-bold">{playerName}</h2>
                       <p className="text-muted-foreground">
-                        Waiting for the host to start the game...
+                        {t("player.waitingForHost")}
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-xl border border-border/60 bg-primary/10 px-4 py-3 text-left shadow-inner">
-                      <p className="text-xs uppercase tracking-wide text-primary/80">Players joined</p>
+                      <p className="text-xs uppercase tracking-wide text-primary/80">{t("player.playersJoined")}</p>
                       <p className="text-2xl font-bold tabular-nums">
                         {gameState.players.length}
                       </p>
                     </div>
                     <div className="rounded-xl border border-border/60 bg-card/70 px-4 py-3 text-left shadow-inner">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Room code</p>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("player.roomCode")}</p>
                       <p className="text-2xl font-bold tabular-nums">{gameCode.toUpperCase()}</p>
                     </div>
                   </div>
@@ -1273,8 +1273,8 @@ export default function PlayerGamePage({
                   <div className="p-6 sm:p-7 space-y-4 text-left">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.25em] text-primary/80">How to play</p>
-                        <h3 className="text-xl sm:text-2xl font-semibold">Rules &amp; scoring</h3>
+                        <p className="text-xs uppercase tracking-[0.25em] text-primary/80">{t("player.howToPlay")}</p>
+                        <h3 className="text-xl sm:text-2xl font-semibold">{t("player.rulesScoring")}</h3>
                       </div>
                       <div className="h-12 w-12 rounded-full bg-primary/15 text-primary flex items-center justify-center shadow-inner">
                         <Trophy className="w-6 h-6" />
@@ -1285,40 +1285,40 @@ export default function PlayerGamePage({
                       <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3 space-y-1 backdrop-blur-sm">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <AlarmClock className="w-4 h-4" />
-                          Beat the clock
+                          {t("player.beatTheClock")}
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          Timer counts down each question. Single choice locks in instantly; multi-select needs Submit before zero.
+                          {t("player.beatTheClockDesc")}
                         </p>
                       </div>
 
                       <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3 space-y-1 backdrop-blur-sm">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <Zap className="w-4 h-4" />
-                          Speed bonus
+                          {t("player.speedBonus")}
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          Every question has base points. Answering instantly can add up to +50% bonus; slower answers earn less.
+                          {t("player.speedBonusDesc")}
                         </p>
                       </div>
 
                       <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3 space-y-1 backdrop-blur-sm">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <Target className="w-4 h-4" />
-                          Multi-select fairness
+                          {t("player.multiSelectFairness")}
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          Points scale with accuracy: (correct picks − wrong picks) / total correct. Wrong or no answer = zero.
+                          {t("player.multiSelectFairnessDesc")}
                         </p>
                       </div>
 
                       <div className="rounded-xl border border-white/10 bg-black/10 px-4 py-3 space-y-1 backdrop-blur-sm">
                         <div className="flex items-center gap-2 text-sm font-semibold">
                           <Sparkles className="w-4 h-4" />
-                          Finish strong
+                          {t("player.finishStrong")}
                         </div>
                         <p className="text-sm text-muted-foreground leading-relaxed">
-                          Scores update each round and feed the leaderboard. Double Points (when enabled) multiplies after bonuses.
+                          {t("player.finishStrongDesc")}
                         </p>
                       </div>
                     </div>
@@ -1330,7 +1330,7 @@ export default function PlayerGamePage({
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-primary" />
                       <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">
-                        Power-ups
+                        {t("player.powerUps")}
                       </p>
                     </div>
 
@@ -1340,13 +1340,13 @@ export default function PlayerGamePage({
                           <div className="rounded-xl border border-border/60 bg-primary/10 px-4 py-3 space-y-1">
                             <div className="flex items-center gap-2 font-semibold text-sm">
                               <Lightbulb className="w-4 h-4" />
-                              Hint
+                              {t("player.hint")}
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">
-                              Reveal the question hint (when available). Uses {powerUpConfig.hintCount > 1 ? "one of your " : "your "}limited hints.
+                              {t("player.hintDesc")}
                             </p>
                             <p className="text-xs font-medium text-primary">
-                              {powerUpConfig.hintCount} ready
+                              {t("player.ready", { count: powerUpConfig.hintCount })}
                             </p>
                           </div>
                         )}
@@ -1355,13 +1355,13 @@ export default function PlayerGamePage({
                           <div className="rounded-xl border border-border/60 bg-primary/10 px-4 py-3 space-y-1">
                             <div className="flex items-center gap-2 font-semibold text-sm">
                               <Users className="w-4 h-4" />
-                              Copy
+                              {t("player.copy")}
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">
-                              Pick a teammate and mirror their answer. If they don&apos;t answer in time, you miss out too.
+                              {t("player.copyDesc")}
                             </p>
                             <p className="text-xs font-medium text-primary">
-                              {powerUpConfig.copyAnswerCount} ready
+                              {t("player.ready", { count: powerUpConfig.copyAnswerCount })}
                             </p>
                           </div>
                         )}
@@ -1370,20 +1370,20 @@ export default function PlayerGamePage({
                           <div className="rounded-xl border border-border/60 bg-primary/10 px-4 py-3 space-y-1">
                             <div className="flex items-center gap-2 font-semibold text-sm">
                               <Sparkles className="w-4 h-4" />
-                              2x Points
+                              {t("player.doublePoints")}
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed">
-                              Doubles your score for that question after speed and accuracy are calculated.
+                              {t("player.doublePointsDesc")}
                             </p>
                             <p className="text-xs font-medium text-primary">
-                              {powerUpConfig.doublePointsCount} ready
+                              {t("player.ready", { count: powerUpConfig.doublePointsCount })}
                             </p>
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="rounded-xl border border-dashed border-border/70 px-4 py-5 text-sm text-muted-foreground text-center">
-                        The host hasn&apos;t enabled power-ups for this game—focus on speed and accuracy.
+                        {t("player.noPowerUpsDesc")}
                       </div>
                     )}
                   </div>
@@ -1435,7 +1435,7 @@ export default function PlayerGamePage({
               />
             )}
             <p className="text-sm opacity-70">
-              Waiting for host to continue...
+              {t("player.waitingHostContinue")}
             </p>
           </div>
         </div>
@@ -1465,9 +1465,9 @@ export default function PlayerGamePage({
           >
             <div className="flex flex-col items-center gap-4 text-amber-200">
               <AlarmClock className="w-14 h-14 animate-bounce" />
-              <h2 className="text-3xl font-bold text-white">Time&apos;s up!</h2>
+              <h2 className="text-3xl font-bold text-white">{t("player.timesUp")}</h2>
               <p className="text-lg text-amber-100/80 max-w-xl">
-                The host will reveal the answers shortly. Sit tight!
+                {t("player.timesUpDesc")}
               </p>
             </div>
           </div>
@@ -1491,7 +1491,7 @@ export default function PlayerGamePage({
               <div className="flex flex-col gap-2 rounded-xl bg-card/80 backdrop-blur-sm border border-border/60 px-4 py-3 shadow-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-muted-foreground">
-                    Question {gameState.currentQuestionNumber} of {gameState.totalQuestions}
+                    {t("player.questionOf", { current: gameState.currentQuestionNumber, total: gameState.totalQuestions })}
                   </span>
                   <div className={`
                     flex items-center gap-2 px-3 py-1 rounded-full font-bold text-lg tabular-nums
@@ -1533,7 +1533,7 @@ export default function PlayerGamePage({
             )}
             {effectiveCurrentQuestion?.questionType === "MULTI_SELECT" && !hasSubmitted && (
               <p className="text-xs sm:text-sm text-center text-muted-foreground mb-2">
-                Select all that apply
+                {t("player.selectAllThatApply")}
               </p>
             )}
           </div>
@@ -1548,10 +1548,10 @@ export default function PlayerGamePage({
               }`}
             >
               <p className="text-2xl font-bold">
-                {answerResult.correct ? "Correct!" : "Wrong!"}
+                {answerResult.correct ? t("player.correct") : t("player.wrong")}
               </p>
-              <p className="text-lg">+{answerResult.points} points</p>
-              <p className="text-sm">Position: #{answerResult.position}</p>
+              <p className="text-lg">{t("player.pointsValue", { points: answerResult.points })}</p>
+              <p className="text-sm">{t("player.position", { position: answerResult.position })}</p>
             </div>
           )}
 
@@ -1560,7 +1560,7 @@ export default function PlayerGamePage({
             <div className="px-3 sm:px-8 py-3 sm:py-4 border-t border-border">
               <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <Zap className="w-4 h-4" />
-                <span className="text-xs sm:text-sm font-medium">Power-ups</span>
+                <span className="text-xs sm:text-sm font-medium">{t("player.powerUps")}</span>
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
@@ -1574,9 +1574,9 @@ export default function PlayerGamePage({
                     className="flex flex-col h-auto py-2 px-1 sm:px-2 min-h-[68px] sm:min-h-[76px]"
                   >
                     <Lightbulb className="w-5 h-5 sm:w-5 sm:h-5 mb-0.5 sm:mb-1" />
-                    <span className="text-[10px] sm:text-xs">Hint</span>
+                    <span className="text-[10px] sm:text-xs">{t("player.hint")}</span>
                     <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                      {powerUpState.hintsRemaining} left
+                      {t("player.left", { count: powerUpState.hintsRemaining })}
                     </span>
                   </Button>
                 )}
@@ -1591,9 +1591,9 @@ export default function PlayerGamePage({
                     className="flex flex-col h-auto py-2 px-1 sm:px-2 min-h-[68px] sm:min-h-[76px]"
                   >
                     <Users className="w-5 h-5 sm:w-5 sm:h-5 mb-0.5 sm:mb-1" />
-                    <span className="text-[10px] sm:text-xs">Copy</span>
+                    <span className="text-[10px] sm:text-xs">{t("player.copy")}</span>
                     <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                      {powerUpState.copyRemaining} left
+                      {t("player.left", { count: powerUpState.copyRemaining })}
                     </span>
                   </Button>
                 )}
@@ -1610,7 +1610,7 @@ export default function PlayerGamePage({
                     <Sparkles className="w-5 h-5 sm:w-5 sm:h-5 mb-0.5 sm:mb-1" />
                     <span className="text-[10px] sm:text-xs">2x</span>
                     <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                      {powerUpState.doubleRemaining} left
+                      {t("player.left", { count: powerUpState.doubleRemaining })}
                     </span>
                   </Button>
                 )}
@@ -1619,13 +1619,13 @@ export default function PlayerGamePage({
               {/* Active Power-ups Feedback */}
               {(selectedPowerUps.has(PowerUpType.HINT) || selectedPowerUps.has(PowerUpType.COPY) || selectedPowerUps.has(PowerUpType.DOUBLE)) && (
                 <div className="mt-3 space-y-2">
-                  {/* Hint Active Badge */}
+                  {/* {t("player.hintActive")} Badge */}
                   {selectedPowerUps.has(PowerUpType.HINT) && (
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                       <div className="flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <p className="text-xs font-medium text-blue-900 dark:text-blue-100">
-                          Hint Active
+                          {t("player.hintActive")}
                         </p>
                       </div>
                     </div>
@@ -1637,7 +1637,9 @@ export default function PlayerGamePage({
                       <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         <p className="text-xs font-medium text-purple-900 dark:text-purple-100">
-                          Copy Active - Will copy from {gameState.players.find(p => p.id === copiedPlayerId)?.name || 'selected player'}
+                          {gameState.players.find(p => p.id === copiedPlayerId)?.name
+                            ? t("player.copyActive", { name: gameState.players.find(p => p.id === copiedPlayerId)?.name ?? "" })
+                            : t("player.copyActiveDefault")}
                         </p>
                       </div>
                     </div>
@@ -1649,7 +1651,7 @@ export default function PlayerGamePage({
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         <p className="text-xs font-medium text-amber-900 dark:text-amber-100">
-                          Double Points Active - Your score will be doubled!
+                          {t("player.doubleActive")}
                         </p>
                       </div>
                     </div>
@@ -1771,7 +1773,7 @@ export default function PlayerGamePage({
                   size="lg"
                   className="w-full"
                 >
-                  Submit Answer ({selectedAnswers.size} selected)
+                  {t("player.submitAnswer", { count: selectedAnswers.size })}
                 </Button>
               </div>
             )}
@@ -1792,7 +1794,7 @@ export default function PlayerGamePage({
                   {easterEggClicked.has(effectiveCurrentQuestion.id) ? (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Clicked!
+                      {t("player.clicked")}
                     </>
                   ) : (
                     <>
@@ -1811,7 +1813,7 @@ export default function PlayerGamePage({
           {hasSubmitted && !isRevealing && (
             <div className="px-8 py-4 text-center text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-              Waiting for time to expire...
+              {t("player.waitingForTime")}
             </div>
           )}
 
@@ -1826,7 +1828,7 @@ export default function PlayerGamePage({
                 {showLanguageSelector ? (
                   <div className="p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Quiz Language</span>
+                    <span className="text-sm font-medium">{t("player.quizLanguage")}</span>
                       <button
                         onClick={() => setShowLanguageSelector(false)}
                         className="text-muted-foreground hover:text-foreground"
@@ -1889,7 +1891,7 @@ export default function PlayerGamePage({
               </p>
             </div>
             <DialogFooter>
-              <Button onClick={() => setShowHintModal(false)}>Close</Button>
+              <Button onClick={() => setShowHintModal(false)}>{t("player.close")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2061,12 +2063,12 @@ export default function PlayerGamePage({
 
           {isFinished && (
             <div className="mt-6 sm:mt-8 text-center space-y-3 sm:space-y-4 relative z-10">
-              <p className="text-sm sm:text-base text-muted-foreground">Thanks for playing!</p>
+              <p className="text-sm sm:text-base text-muted-foreground">{t("player.thanksForPlaying")}</p>
 
               {showGeneratingMessage && (
                 <div className="flex items-center justify-center gap-2 text-sm sm:text-base text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Generating your certificate...</span>
+                  <span>{t("player.generatingCertificate")}</span>
                 </div>
               )}
 

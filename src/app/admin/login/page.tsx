@@ -10,6 +10,7 @@ import { Loader2, Lock, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PasswordStrengthIndicator } from "@/components/settings/PasswordStrengthIndicator";
 import { calculatePasswordStrength } from "@/lib/password-strength";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function AdminLoginPage() {
   return (
@@ -20,6 +21,7 @@ export default function AdminLoginPage() {
 }
 
 function AdminLoginInner() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/admin";
 
@@ -73,10 +75,10 @@ function AdminLoginInner() {
         // the same over HTTP and HTTPS (Zoraxy).
         window.location.replace(redirect);
       } else {
-        toast.error(data.error || "Login failed");
+        toast.error(data.error || t("login.loginFailed"));
       }
     } catch {
-      toast.error("Login failed");
+      toast.error(t("login.loginFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -85,11 +87,11 @@ function AdminLoginInner() {
   async function handleSetup(e: React.FormEvent) {
     e.preventDefault();
     if (setupPassword.length < 12) {
-      toast.error("Password must be at least 12 characters");
+      toast.error(t("login.passwordTooShort"));
       return;
     }
     if (setupPassword !== setupPasswordConfirm) {
-      toast.error("Passwords do not match");
+      toast.error(t("login.passwordsDoNotMatch"));
       return;
     }
     setSubmitting(true);
@@ -104,15 +106,15 @@ function AdminLoginInner() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success("Admin account created");
+        toast.success(t("login.adminAccountCreated"));
         // Hard navigation (see handleLogin): a soft router.replace() can be
         // dropped by the App Router cache after an auth-state change.
         window.location.replace(redirect);
       } else {
-        toast.error(data.error || "Setup failed");
+        toast.error(data.error || t("login.setupFailed"));
       }
     } catch {
-      toast.error("Setup failed");
+      toast.error(t("login.setupFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -135,16 +137,15 @@ function AdminLoginInner() {
             <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
               <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle>Create admin account</CardTitle>
+            <CardTitle>{t("login.createAdminAccount")}</CardTitle>
             <CardDescription>
-              Quiz0r needs an administrator account before anyone can manage
-              quizzes, themes, or settings. This only runs once.
+              {t("login.setupDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSetup} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="setupUsername">Username</Label>
+                <Label htmlFor="setupUsername">{t("login.username")}</Label>
                 <Input
                   id="setupUsername"
                   value={setupUsername}
@@ -154,7 +155,7 @@ function AdminLoginInner() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="setupPassword">Password (min 12 chars)</Label>
+                <Label htmlFor="setupPassword">{t("login.passwordMinChars")}</Label>
                 <Input
                   id="setupPassword"
                   type="password"
@@ -165,7 +166,7 @@ function AdminLoginInner() {
                 <PasswordStrengthIndicator strength={calculatePasswordStrength(setupPassword)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="setupPasswordConfirm">Confirm password</Label>
+                <Label htmlFor="setupPasswordConfirm">{t("login.confirmPassword")}</Label>
                 <Input
                   id="setupPasswordConfirm"
                   type="password"
@@ -178,10 +179,10 @@ function AdminLoginInner() {
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
+                    {t("login.creating")}
                   </>
                 ) : (
-                  "Create admin account"
+                  t("login.createAdminAccount")
                 )}
               </Button>
             </form>
@@ -199,13 +200,13 @@ function AdminLoginInner() {
           <div className="mx-auto mb-2 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Lock className="w-6 h-6 text-primary" />
           </div>
-          <CardTitle>Admin login</CardTitle>
-          <CardDescription>Sign in to manage Quiz0r.</CardDescription>
+          <CardTitle>{t("login.adminLogin")}</CardTitle>
+          <CardDescription>{t("login.signInToManage")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t("login.username")}</Label>
               <Input
                 id="username"
                 value={username}
@@ -215,7 +216,7 @@ function AdminLoginInner() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("login.password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -228,10 +229,10 @@ function AdminLoginInner() {
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Signing in...
+                  {t("login.signingIn")}
                 </>
               ) : (
-                "Sign in"
+                t("login.signIn")
               )}
             </Button>
           </form>
