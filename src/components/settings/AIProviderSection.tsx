@@ -128,9 +128,12 @@ export function AIProviderSection() {
       send[modelSettingKey(selected)] = fields[modelSettingKey(selected)] ?? "";
       const hk = extraHeadersSettingKey(selected);
       if (hk) send[hk] = fields[hk] ?? "";
-      // API key: only send when actively editing (replacing) it.
-      if (editingKey === selected) {
-        send[apiKeySettingKey(selected)] = fields[apiKeySettingKey(selected)] ?? "";
+      // API key: send whenever the admin has typed a value, so that a
+      // first-time entry is persisted. An empty field is omitted so that
+      // saving other fields never clears a stored key by accident.
+      const apiKeyVal = fields[apiKeySettingKey(selected)] ?? "";
+      if (apiKeyVal) {
+        send[apiKeySettingKey(selected)] = apiKeyVal;
       }
       payload.fields = send;
 
@@ -166,8 +169,12 @@ export function AIProviderSection() {
       send[modelSettingKey(selected)] = fields[modelSettingKey(selected)] ?? "";
       const hk = extraHeadersSettingKey(selected);
       if (hk) send[hk] = fields[hk] ?? "";
-      if (editingKey === selected) {
-        send[apiKeySettingKey(selected)] = fields[apiKeySettingKey(selected)] ?? "";
+      // API key: send whenever the admin has typed a value, so a first-time
+      // entry is tested. An empty field falls back to the stored key on the
+      // server (buildProviderFromRequest reads the DB when omitted).
+      const apiKeyVal = fields[apiKeySettingKey(selected)] ?? "";
+      if (apiKeyVal) {
+        send[apiKeySettingKey(selected)] = apiKeyVal;
       }
       const res = await fetch("/api/settings/ai/test", {
         method: "POST",
