@@ -786,6 +786,16 @@ export default function HostControlPage({
                     {/* Certificate Regeneration Panel */}
                     <CertificateRegenerationPanel gameCode={gameCode} />
 
+                    <Button
+                      onClick={showScoreboard}
+                      variant="outline"
+                      size="lg"
+                      className="w-full"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Show Results
+                    </Button>
+
                     <Link href="/host">
                       <Button size="lg" className="w-full">
                         Start New Game

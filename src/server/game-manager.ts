@@ -816,7 +816,34 @@ export class GameManager {
     if (!(await this.requireHostSocket(socket))) return;
     const upperCode = data.gameCode.toUpperCase();
     const game = this.activeGames.get(upperCode);
-    if (!game) return;
+
+    // FINISHED games are removed from activeGames by endGame(). Re-trigger the
+    // final results view by re-emitting the existing game:finished event with
+    // final scores loaded from the database. The DB status is left as FINISHED
+    // and the game is not restored to activeGames.
+    if (!game) {
+      const gameSession = await prisma.gameSession.findUnique({
+        where: { gameCode: upperCode },
+        select: { status: true },
+      });
+      if (gameSession?.status === "FINISHED") {
+        const finalScores = await this.getPlayerScores(upperCode);
+        const winners = finalScores.slice(0, 3).map((s) => ({
+          id: s.playerId,
+          name: s.name,
+          avatarColor: s.avatarColor,
+          avatarEmoji: s.avatarEmoji,
+          score: s.score,
+          isActive: true,
+        }));
+        this.io.to(`game:${upperCode}`).emit("game:finished", {
+          finalScores,
+          winners,
+        });
+      }
+      return;
+    }
+
     if (game.pendingReveal) {
       socket.emit("error", { message: "Reveal answers before showing the scoreboard", code: "REVEAL_REQUIRED" });
       return;
