@@ -212,9 +212,33 @@ export class CertificateService {
       let aiMessage: string | undefined;
 
       if (certificate.type === "player" && certificate.player) {
-        const player = playerScores.find(
+        // After FINISHED, players may disconnect (handleDisconnect sets
+        // isActive=false), which removes them from the filtered
+        // playerScores above even though a certificate record exists for
+        // them. Reconstruct this player's score from the eagerly-loaded
+        // certificate.player relation so they are always found and the
+        // certificate can reach "completed". No new persistence; uses the
+        // existing totalScore data.
+        let player = playerScores.find(
           (p) => p.playerId === certificate.playerId
         );
+        if (!player && certificate.playerId) {
+          const p = certificate.player;
+          player = {
+            playerId: p.id,
+            name: p.name,
+            avatarColor: p.avatarColor || "#666",
+            avatarEmoji: p.avatarEmoji || undefined,
+            languageCode: (p.languageCode as any) || "en",
+            score: p.totalScore,
+            // Position: 1 + number of players with a strictly higher score.
+            position:
+              playerScores.filter((s) => s.score > p.totalScore).length + 1,
+            change: 0,
+            powerUpsUsed: [],
+          };
+          playerScores.push(player);
+        }
         if (!player) {
           throw new Error("Player not found in scores");
         }

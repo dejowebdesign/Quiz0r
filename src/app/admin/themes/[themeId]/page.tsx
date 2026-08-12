@@ -503,7 +503,7 @@ export default function ThemeBuilderPage({ params }: Props) {
                         )}
                       </Button>
                       <p className="text-xs text-muted-foreground text-center">
-                        Uses your saved OpenAI API key from Settings.
+                        Uses your configured AI provider and API key from Settings.
                       </p>
                     </>
                   ) : (
@@ -535,7 +535,7 @@ export default function ThemeBuilderPage({ params }: Props) {
                           <li>Go to the JSON tab and paste it there</li>
                         </ol>
                         <p className="text-xs">
-                          Tip: Add an OpenAI API key in Settings to generate themes automatically.
+                          Tip: Configure an AI provider and API key in Settings to generate themes automatically.
                         </p>
                       </div>
                     </>

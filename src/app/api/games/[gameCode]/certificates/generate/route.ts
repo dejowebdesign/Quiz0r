@@ -111,8 +111,32 @@ export async function POST(
         });
       }
 
-      // Validate player exists in game
-      const player = playerScores.find((p) => p.playerId === playerId);
+      // Validate player exists in game. The leaderboard above is filtered to
+      // active+admitted players, but a player who disconnected after FINISHED
+      // (isActive=false) may still request their certificate. Fall back to a
+      // direct DB lookup so the certificate can still be generated.
+      let player = playerScores.find((p) => p.playerId === playerId);
+      if (!player) {
+        const dbPlayer = await prisma.player.findFirst({
+          where: { id: playerId, gameSessionId: gameData.id },
+        });
+        if (dbPlayer) {
+          player = {
+            playerId: dbPlayer.id,
+            name: dbPlayer.name,
+            avatarColor: dbPlayer.avatarColor || "#666",
+            avatarEmoji: dbPlayer.avatarEmoji || undefined,
+            languageCode: (dbPlayer.languageCode as any) || "en",
+            score: dbPlayer.totalScore,
+            position:
+              playerScores.filter((s) => s.score > dbPlayer.totalScore).length +
+              1,
+            change: 0,
+            powerUpsUsed: [],
+          };
+          playerScores.push(player);
+        }
+      }
       if (!player) {
         return new Response("Player not found in game", { status: 403 });
       }

@@ -1471,7 +1471,7 @@ export default function QuestionsPage({
 
             <div className="border-t pt-4 mt-4">
               <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> Translations use OpenAI GPT-4o. Make sure you have configured your API key in{" "}
+                <strong>Note:</strong> Translations use your configured AI provider. Make sure you have configured a provider and API key in{" "}
                 <Link href="/admin/settings" className="text-primary hover:underline">
                   Settings
                 </Link>

@@ -37,7 +37,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to generate theme";
-    const status = message.includes("OpenAI API key not configured") ? 400 : 500;
+    const isConfigError =
+      message.includes("not configured") ||
+      message.includes("API key") ||
+      message.includes("base URL");
+    const status = isConfigError ? 400 : 500;
 
     console.error("Failed to generate theme:", error);
     return NextResponse.json({ error: message }, { status });

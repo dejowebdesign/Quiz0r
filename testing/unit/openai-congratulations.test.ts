@@ -1,43 +1,46 @@
 /// <reference types="vitest" />
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("openai", () => ({ default: vi.fn() }));
-vi.mock("@/lib/db", async () => {
-  const mod = await import("./mocks/prisma");
-  const prisma = mod.PrismaClient.instance ?? new mod.PrismaClient();
-  return { prisma };
-});
+// The congrats module now uses the configured AI provider abstraction
+// (getConfiguredProvider().generateText) instead of a direct OpenAI client
+// and no longer touches Prisma directly. Mock the provider so we can drive
+// the text-generation result per test. vi.hoisted ensures the mocks exist
+// before vi.mock's hoisted factory runs.
+const { generateTextMock, getConfiguredProviderMock } = vi.hoisted(() => ({
+  generateTextMock: vi.fn(),
+  getConfiguredProviderMock: vi.fn(),
+}));
 
-import OpenAI from "openai";
+vi.mock("@/lib/ai-provider", () => ({
+  getConfiguredProvider: getConfiguredProviderMock,
+}));
+
 import { generateCongratulatoryMessage, getFallbackMessage } from "@/lib/openai-congratulations";
-import { getPrismaMock } from "./mocks/prisma";
 
 describe("openai-congratulations", () => {
   beforeEach(() => {
-    getPrismaMock().reset();
-    vi.restoreAllMocks();
+    generateTextMock.mockReset();
+    getConfiguredProviderMock.mockReset();
+    // Default: a working provider that delegates to generateTextMock.
+    getConfiguredProviderMock.mockResolvedValue({ generateText: generateTextMock });
   });
 
-  it("returns fallback when OpenAI is not configured", async () => {
+  it("returns fallback when AI provider is not configured (throws)", async () => {
+    getConfiguredProviderMock.mockResolvedValueOnce({
+      generateText: vi.fn().mockRejectedValue(new Error("not configured")),
+    });
+
     const msg = await generateCongratulatoryMessage("Pat", 1, 5, 1000, "Quiz");
     expect(msg).toContain("Pat");
   });
 
-  it("uses OpenAI client when configured", async () => {
-    const prisma = getPrismaMock();
-    prisma.seedSetting("openai_api_key", "test-key");
+  it("uses the configured provider when available", async () => {
     const fakeMessage = "Great job!";
-
-    const create = vi.fn().mockResolvedValue({
-      choices: [{ message: { content: fakeMessage } }],
-    });
-    const chat = { completions: { create } };
-
-    vi.mocked(OpenAI).mockReturnValue({ chat } as any);
+    generateTextMock.mockResolvedValue(fakeMessage);
 
     const msg = await generateCongratulatoryMessage("Pat", 2, 10, 900, "Quiz");
     expect(msg).toBe(fakeMessage);
-    expect(create).toHaveBeenCalled();
+    expect(generateTextMock).toHaveBeenCalled();
   });
 
   it("provides ordinalized fallback messages", () => {

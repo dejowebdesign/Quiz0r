@@ -15,11 +15,12 @@
 
 import OpenAI from "openai";
 import { prisma } from "@/lib/db";
-import type {
+import {
   AIProvider,
   QuizGenerationOptions,
   AIQuizResponse,
   TestConnectionResult,
+  GenerateTextOptions,
 } from "@/lib/ai-provider";
 import {
   PROVIDER_PRESETS,
@@ -301,6 +302,54 @@ export class OpenAICompatibleProvider implements AIProvider {
     } catch (err) {
       console.error(`Failed to parse ${this.name} response:`, err);
       throw new Error("Failed to parse AI response");
+    }
+  }
+
+  /**
+   * Generate plain text (or JSON) via chat.completions using this provider's
+   * configured client, model, base URL, and API key. Shared by translation,
+   * theme, and congratulatory-message features so they honor the selected
+   * provider (FreeLLMAPI, OpenRouter, Ollama, ...) instead of a hardcoded
+   * OpenAI client.
+   *
+   * Never logs credentials. The optional timeout uses an AbortController.
+   */
+  async generateText(options: GenerateTextOptions): Promise<string> {
+    const client = this.getClient();
+    const model = await this.getModel();
+
+    const abortController = new AbortController();
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    if (options.timeoutMs && options.timeoutMs > 0) {
+      timeoutHandle = setTimeout(
+        () => abortController.abort(),
+        options.timeoutMs
+      );
+    }
+
+    try {
+      const completion = await client.chat.completions.create(
+        {
+          model,
+          temperature: options.temperature ?? 0.7,
+          messages: [
+            { role: "system", content: options.systemPrompt },
+            { role: "user", content: options.userPrompt },
+          ],
+          ...(options.jsonMode
+            ? { response_format: { type: "json_object" as const } }
+            : {}),
+        },
+        { signal: abortController.signal }
+      );
+
+      const responseText = completion.choices[0]?.message?.content;
+      if (!responseText) {
+        throw new Error(`No response from ${this.name}`);
+      }
+      return responseText;
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
     }
   }
 

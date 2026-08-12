@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { SupportedLanguages, type LanguageCode } from "@/types";
-import OpenAI from "openai";
+import { getConfiguredProvider } from "@/lib/ai-provider";
 
 interface TranslationRequest {
   questionText: string;
@@ -35,24 +35,16 @@ interface SectionTranslationResponse {
 }
 
 /**
- * Get OpenAI client instance with API key from database
+ * Get the configured AI provider for translation.
+ * Uses the shared provider abstraction so translation works with FreeLLMAPI,
+ * OpenRouter, Ollama, etc., not just OpenAI.
  */
-async function getOpenAIClient(): Promise<OpenAI | null> {
-  const apiKeySetting = await prisma.setting.findUnique({
-    where: { key: "openai_api_key" },
-  });
-
-  if (!apiKeySetting?.value) {
-    return null;
-  }
-
-  return new OpenAI({
-    apiKey: apiKeySetting.value,
-  });
+async function getProvider() {
+  return getConfiguredProvider();
 }
 
 /**
- * Translate a single question to a target language using OpenAI GPT-4o
+ * Translate a single question to a target language using the configured AI provider
  * @param questionId - The question ID to translate
  * @param targetLanguage - The target language code (e.g., 'es', 'fr')
  * @returns Success status
@@ -62,11 +54,8 @@ export async function translateQuestion(
   targetLanguage: LanguageCode
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get OpenAI client
-    const openai = await getOpenAIClient();
-    if (!openai) {
-      return { success: false, error: "OpenAI API key not configured" };
-    }
+    // Get configured provider
+    const provider = await getProvider();
 
     // Get question with answers
     const question = await prisma.question.findUnique({
@@ -107,23 +96,16 @@ CRITICAL RULES:
 6. Return ONLY valid JSON with no markdown formatting or code blocks
 7. If a field is null or empty, keep it null/empty in the response`;
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Translate this quiz question to ${languageInfo.name}:\n\n${JSON.stringify(request, null, 2)}`,
-        },
-      ],
-      response_format: { type: "json_object" },
+    // Call configured AI provider
+    const responseText = await provider.generateText({
+      systemPrompt,
+      userPrompt: `Translate this quiz question to ${languageInfo.name}:\n\n${JSON.stringify(request, null, 2)}`,
+      jsonMode: true,
       temperature: 0.3,
     });
 
-    const responseText = completion.choices[0]?.message?.content;
     if (!responseText) {
-      return { success: false, error: "No response from OpenAI" };
+      return { success: false, error: "No response from AI provider" };
     }
 
     // Parse response
@@ -193,7 +175,7 @@ CRITICAL RULES:
 }
 
 /**
- * Translate a section (SECTION type question) to a target language using OpenAI GPT-4o
+ * Translate a section (SECTION type question) to a target language using the configured AI provider
  * Sections only have title (questionText) and description (hostNotes)
  * @param sectionId - The section ID to translate
  * @param targetLanguage - The target language code (e.g., 'es', 'fr')
@@ -204,11 +186,8 @@ export async function translateSection(
   targetLanguage: LanguageCode
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get OpenAI client
-    const openai = await getOpenAIClient();
-    if (!openai) {
-      return { success: false, error: "OpenAI API key not configured" };
-    }
+    // Get configured provider
+    const provider = await getProvider();
 
     // Get section
     const section = await prisma.question.findUnique({
@@ -241,23 +220,16 @@ CRITICAL RULES:
 5. Return ONLY valid JSON with no markdown formatting or code blocks
 6. If a field is null or empty, keep it null/empty in the response`;
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: `Translate this quiz section header to ${languageInfo.name}:\n\n${JSON.stringify(request, null, 2)}`,
-        },
-      ],
-      response_format: { type: "json_object" },
+    // Call configured AI provider
+    const responseText = await provider.generateText({
+      systemPrompt,
+      userPrompt: `Translate this quiz section header to ${languageInfo.name}:\n\n${JSON.stringify(request, null, 2)}`,
+      jsonMode: true,
       temperature: 0.3,
     });
 
-    const responseText = completion.choices[0]?.message?.content;
     if (!responseText) {
-      return { success: false, error: "No response from OpenAI" };
+      return { success: false, error: "No response from AI provider" };
     }
 
     // Parse response

@@ -96,6 +96,27 @@ export interface AISection {
 }
 
 /**
+ * Options for a generic text generation call.
+ *
+ * This is the shared entry point for all non-quiz text AI features
+ * (translation, theme JSON, congratulatory messages, ...). It is intentionally
+ * a thin wrapper around chat.completions so any OpenAI-compatible provider
+ * (FreeLLMAPI, OpenRouter, Ollama, LM Studio, custom) can serve it.
+ */
+export interface GenerateTextOptions {
+  /** System prompt guiding the model's behavior. */
+  systemPrompt: string;
+  /** User prompt with the actual request content. */
+  userPrompt: string;
+  /** When true, request JSON output via response_format json_object. */
+  jsonMode?: boolean;
+  /** Sampling temperature. Defaults to 0.7 when omitted. */
+  temperature?: number;
+  /** Abort after this many ms. Defaults to no timeout (0). */
+  timeoutMs?: number;
+}
+
+/**
  * AI Provider interface
  * All AI providers must implement this interface
  */
@@ -116,6 +137,14 @@ export interface AIProvider {
    * @returns Raw AI response that will be normalized by Quiz0r
    */
   generateQuiz(options: QuizGenerationOptions): Promise<AIQuizResponse>;
+
+  /**
+   * Generate plain text (or JSON) via chat.completions. Used by all
+   * text-based AI features so they run through the configured provider
+   * (FreeLLMAPI, OpenRouter, Ollama, ...) instead of a hardcoded OpenAI client.
+   * @returns The raw text content from the model's first choice.
+   */
+  generateText(options: GenerateTextOptions): Promise<string>;
 
   /**
    * Test the connection to this provider without generating content.
