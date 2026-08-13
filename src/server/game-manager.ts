@@ -367,6 +367,18 @@ export class GameManager {
         return;
       }
 
+      // A FINISHED game must not be restarted: re-ending it would re-run
+      // certificate generation and hit the @@unique([gameSessionId, type, playerId])
+      // constraint on already-existing certificates. A fresh game must be created
+      // via the normal /host → Create Game flow instead.
+      if (gameSession.status === "FINISHED") {
+        socket.emit("error", {
+          message: "This game has already finished and cannot be restarted",
+          code: "GAME_FINISHED",
+        });
+        return;
+      }
+
       // Initialize active game
       const questions: QuestionData[] = gameSession.quiz.questions.map((q) => ({
         id: q.id,
