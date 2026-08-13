@@ -25,7 +25,9 @@ export async function POST(
     const { type, playerId } = body;
     const { gameCode } = await params;
 
-    // Fetch game data
+    // Fetch game data. Scope players to admissionStatus "admitted" without
+    // an isActive filter so disconnected players remain on the leaderboard
+    // (consistent with CertificateService.generateAllCertificates).
     const gameData = await prisma.gameSession.findUnique({
       where: { gameCode: gameCode.toUpperCase() },
       include: {
@@ -37,7 +39,6 @@ export async function POST(
         },
         players: {
           where: {
-            isActive: true,
             admissionStatus: "admitted",
           },
           orderBy: { totalScore: "desc" },
@@ -111,10 +112,10 @@ export async function POST(
         });
       }
 
-      // Validate player exists in game. The leaderboard above is filtered to
-      // active+admitted players, but a player who disconnected after FINISHED
-      // (isActive=false) may still request their certificate. Fall back to a
-      // direct DB lookup so the certificate can still be generated.
+      // Validate player exists in game. The leaderboard above now includes
+      // admitted players regardless of isActive, so this player should be
+      // found directly. The DB fallback below remains as a safety net for
+      // edge cases (e.g. a player whose admissionStatus is not "admitted").
       let player = playerScores.find((p) => p.playerId === playerId);
       if (!player) {
         const dbPlayer = await prisma.player.findFirst({

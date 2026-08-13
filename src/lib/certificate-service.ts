@@ -44,14 +44,18 @@ export class CertificateService {
   ): Promise<{ success: number; failed: number; failedCertificates: string[] }> {
     const { gameCode, onProgress } = options;
 
-    // Fetch game data
+    // Fetch game data. Players are scoped to admissionStatus "admitted"
+    // (removed players have status "pending"/"refused"). We deliberately do
+    // NOT filter by isActive: players who disconnected after the game ended
+    // (handleDisconnect sets isActive=false) still participated and must
+    // receive a certificate. This mirrors the player reconstruction in
+    // generateCertificate and avoids silently dropping them.
     const gameData = await prisma.gameSession.findUnique({
       where: { gameCode: gameCode.toUpperCase() },
       include: {
         quiz: { select: { title: true, theme: true } },
         players: {
           where: {
-            isActive: true,
             admissionStatus: "admitted",
           },
           orderBy: { totalScore: "desc" },
@@ -153,7 +157,10 @@ export class CertificateService {
     certificateId: string
   ): Promise<CertificateGenerationResult> {
     try {
-      // Update status to "generating"
+      // Update status to "generating". Players are scoped to admissionStatus
+      // "admitted" without an isActive filter so disconnected players remain
+      // on the leaderboard (host certificate) and are found for their own
+      // certificate. See generateAllCertificates for the rationale.
       const certificate = await prisma.certificate.update({
         where: { id: certificateId },
         data: { status: "generating" },
@@ -162,7 +169,7 @@ export class CertificateService {
             include: {
               quiz: { select: { title: true, theme: true } },
               players: {
-                where: { isActive: true, admissionStatus: "admitted" },
+                where: { admissionStatus: "admitted" },
                 orderBy: { totalScore: "desc" },
                 include: {
                   powerUpUsages: {
@@ -212,13 +219,13 @@ export class CertificateService {
       let aiMessage: string | undefined;
 
       if (certificate.type === "player" && certificate.player) {
-        // After FINISHED, players may disconnect (handleDisconnect sets
-        // isActive=false), which removes them from the filtered
-        // playerScores above even though a certificate record exists for
-        // them. Reconstruct this player's score from the eagerly-loaded
-        // certificate.player relation so they are always found and the
-        // certificate can reach "completed". No new persistence; uses the
-        // existing totalScore data.
+        // playerScores above now includes admitted players regardless of
+        // isActive, so this player should always be found. This fallback
+        // remains as a safety net for edge cases (e.g. a player whose
+        // admissionStatus was changed after a certificate record was created):
+        // reconstruct from the eagerly-loaded certificate.player relation so
+        // the certificate can still reach "completed". No new persistence;
+        // uses the existing totalScore data.
         let player = playerScores.find(
           (p) => p.playerId === certificate.playerId
         );
