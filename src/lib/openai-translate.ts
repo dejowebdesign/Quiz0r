@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { SupportedLanguages, type LanguageCode } from "@/types";
 import { getConfiguredProvider } from "@/lib/ai-provider";
+import { resolveSourceLanguage } from "@/lib/source-language";
 
 interface TranslationRequest {
   questionText: string;
@@ -44,6 +45,35 @@ async function getProvider() {
 }
 
 /**
+ * Human-readable description of a language for AI prompts, including the
+ * native name so the model produces the correct script/variant. For Serbian we
+ * explicitly call out the required script (Latin vs Cyrillic) so the model does
+ * not pick one arbitrarily.
+ */
+function languagePromptName(code: LanguageCode): string {
+  const info = SupportedLanguages[code];
+  switch (code) {
+    case "sr-Latn":
+      return `${info.name} (Latin script — "${info.nativeName}")`;
+    case "sr-Cyrl":
+      return `${info.name} (Cyrillic script — "${info.nativeName}")`;
+    default:
+      return `${info.name} (${info.nativeName})`;
+  }
+}
+
+/**
+ * Resolve the source language for a question by reading its quiz.
+ */
+async function resolveQuestionSourceLanguage(questionId: string): Promise<LanguageCode> {
+  const question = await prisma.question.findUnique({
+    where: { id: questionId },
+    select: { quiz: { select: { sourceLanguage: true } } },
+  });
+  return resolveSourceLanguage(question?.quiz?.sourceLanguage);
+}
+
+/**
  * Translate a single question to a target language using the configured AI provider
  * @param questionId - The question ID to translate
  * @param targetLanguage - The target language code (e.g., 'es', 'fr')
@@ -71,6 +101,9 @@ export async function translateQuestion(
       return { success: false, error: "Question not found" };
     }
 
+    // Resolve the actual source language of this quiz's content
+    const sourceLanguage = await resolveQuestionSourceLanguage(questionId);
+
     // Prepare translation request
     const request: TranslationRequest = {
       questionText: question.questionText,
@@ -83,9 +116,10 @@ export async function translateQuestion(
       })),
     };
 
-    const languageInfo = SupportedLanguages[targetLanguage];
+    const sourceInfo = SupportedLanguages[sourceLanguage];
+    const targetName = languagePromptName(targetLanguage);
     const systemPrompt = `You are a professional translator for educational quiz content.
-Translate from English to ${languageInfo.name} (${languageInfo.nativeName}).
+Translate from ${sourceInfo.name} (${sourceInfo.nativeName}) to ${targetName}.
 
 CRITICAL RULES:
 1. Maintain EXACT JSON structure
@@ -94,12 +128,13 @@ CRITICAL RULES:
 4. Keep technical terms accurate
 5. Ensure cultural appropriateness
 6. Return ONLY valid JSON with no markdown formatting or code blocks
-7. If a field is null or empty, keep it null/empty in the response`;
+7. If a field is null or empty, keep it null/empty in the response
+8. The target language is ${targetName}; write the output in that language and script only.`;
 
     // Call configured AI provider
     const responseText = await provider.generateText({
       systemPrompt,
-      userPrompt: `Translate this quiz question to ${languageInfo.name}:\n\n${JSON.stringify(request, null, 2)}`,
+      userPrompt: `Translate this quiz question to ${targetName}:\n\n${JSON.stringify(request, null, 2)}`,
       jsonMode: true,
       temperature: 0.3,
     });
@@ -202,15 +237,19 @@ export async function translateSection(
       return { success: false, error: "Not a section" };
     }
 
+    // Resolve the actual source language of this quiz's content
+    const sourceLanguage = await resolveQuestionSourceLanguage(sectionId);
+
     // Prepare translation request
     const request: SectionTranslationRequest = {
       title: section.questionText,
       description: section.hostNotes,
     };
 
-    const languageInfo = SupportedLanguages[targetLanguage];
+    const sourceInfo = SupportedLanguages[sourceLanguage];
+    const targetName = languagePromptName(targetLanguage);
     const systemPrompt = `You are a professional translator for educational quiz content.
-Translate from English to ${languageInfo.name} (${languageInfo.nativeName}).
+Translate from ${sourceInfo.name} (${sourceInfo.nativeName}) to ${targetName}.
 
 CRITICAL RULES:
 1. Maintain EXACT JSON structure
@@ -218,12 +257,13 @@ CRITICAL RULES:
 3. Preserve formatting and line breaks
 4. Keep the tone appropriate for quiz section headers
 5. Return ONLY valid JSON with no markdown formatting or code blocks
-6. If a field is null or empty, keep it null/empty in the response`;
+6. If a field is null or empty, keep it null/empty in the response
+7. The target language is ${targetName}; write the output in that language and script only.`;
 
     // Call configured AI provider
     const responseText = await provider.generateText({
       systemPrompt,
-      userPrompt: `Translate this quiz section header to ${languageInfo.name}:\n\n${JSON.stringify(request, null, 2)}`,
+      userPrompt: `Translate this quiz section header to ${targetName}:\n\n${JSON.stringify(request, null, 2)}`,
       jsonMode: true,
       temperature: 0.3,
     });
@@ -401,6 +441,14 @@ export async function getQuizTranslationStatus(quizId: string): Promise<
       return [];
     }
 
+    // Resolve the source language of this quiz so it is excluded from the list
+    // of translatable targets (it is the base language, not a translation).
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      select: { sourceLanguage: true },
+    });
+    const sourceLanguage = resolveSourceLanguage(quiz?.sourceLanguage);
+
     // Separate sections and questions
     const sections = allItems.filter((item) => item.questionType === "SECTION");
     const questions = allItems.filter((item) => item.questionType !== "SECTION");
@@ -430,10 +478,10 @@ export async function getQuizTranslationStatus(quizId: string): Promise<
       totalFieldsPerLanguage += question.answers.length;
     }
 
-    // Build status for each supported language (excluding English)
+    // Build status for each supported language (excluding the source language)
     const statuses = await Promise.all(
       (Object.keys(SupportedLanguages) as LanguageCode[])
-        .filter((code) => code !== "en")
+        .filter((code) => code !== sourceLanguage)
         .map(async (languageCode) => {
           const languageInfo = SupportedLanguages[languageCode];
 

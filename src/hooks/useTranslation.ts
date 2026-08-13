@@ -11,12 +11,14 @@ export { AppSupportedLocales } from "@/contexts/I18nContext";
  * Must be used within an I18nProvider.
  */
 export function useTranslation() {
-  const { locale, setLocale, t, availableLocales } = useI18n();
+  const { locale, setLocale, t, availableLocales, dir, isRtl } = useI18n();
 
   return {
     locale,
     setLocale,
     t,
     availableLocales,
+    dir,
+    isRtl,
   };
 }

@@ -8,6 +8,7 @@
 
 import { prisma } from "@/lib/db";
 import { fetchUnsplashImages } from "@/lib/unsplash";
+import { resolveSourceLanguage } from "@/lib/source-language";
 import {
   type QuizGenerationOptions,
   type NormalizedAnswer,
@@ -311,11 +312,14 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
     "Draft created with AI. Review carefully before hosting.";
 
   // Persist quiz with questions
+  const resolvedSourceLanguage = resolveSourceLanguage(options.sourceLanguage);
+
   const quiz = await prisma.quiz.create({
     data: {
       title: quizTitle,
       description: quizDescription,
       aiGenerated: true,
+      sourceLanguage: resolvedSourceLanguage,
       questions: {
         create: normalizedQuestions.map((question, index) => ({
           questionText: question.questionText,

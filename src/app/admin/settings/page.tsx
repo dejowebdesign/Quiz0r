@@ -51,6 +51,7 @@ import {
 import { ExportDialog } from "@/components/settings/ExportDialog";
 import { ImportDialog } from "@/components/settings/ImportDialog";
 import { AIProviderSection } from "@/components/settings/AIProviderSection";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface SettingsData {
   ngrokToken: string | null;
@@ -67,6 +68,7 @@ interface SettingsData {
 }
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -134,16 +136,16 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Token saved successfully!" });
+        setMessage({ type: "success", text: t("settings.tokenSaved") });
         setTokenInput("");
         setShowToken(false);
         fetchSettings();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error || "Failed to save token" });
+        setMessage({ type: "error", text: data.error || t("settings.failedToSaveToken") });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to save token" });
+      setMessage({ type: "error", text: t("settings.failedToSaveToken") });
     } finally {
       setSaving(false);
     }
@@ -161,12 +163,12 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Token removed" });
+        setMessage({ type: "success", text: t("settings.tokenRemoved") });
     fetchSettings();
   }
 
     } catch {
-      setMessage({ type: "error", text: "Failed to remove token" });
+      setMessage({ type: "error", text: t("settings.failedToRemoveToken") });
     } finally {
       setSaving(false);
       setRemoveTokenDialogOpen(false);
@@ -185,13 +187,13 @@ export default function SettingsPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Tunnel started!" });
+        setMessage({ type: "success", text: t("settings.tunnelStarted") });
         fetchSettings();
       } else {
-        setMessage({ type: "error", text: data.error || "Failed to start tunnel" });
+        setMessage({ type: "error", text: data.error || t("settings.failedToStartTunnel") });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to start tunnel" });
+      setMessage({ type: "error", text: t("settings.failedToStartTunnel") });
     } finally {
       setTunnelLoading(false);
     }
@@ -207,13 +209,13 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Tunnel stopped" });
+        setMessage({ type: "success", text: t("settings.tunnelStopped") });
         // Clear cached URL from localStorage
         localStorage.removeItem("quiz0r-base-url");
         fetchSettings();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to stop tunnel" });
+      setMessage({ type: "error", text: t("settings.failedToStopTunnel") });
     } finally {
       setTunnelLoading(false);
     }
@@ -242,17 +244,17 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Short.io settings saved successfully!" });
+        setMessage({ type: "success", text: t("settings.shortioSaved") });
         setShortioApiKeyInput("");
         setShortioDomainInput("");
         setShowShortio(false);
         fetchSettings();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error || "Failed to save Short.io settings" });
+        setMessage({ type: "error", text: data.error || t("settings.failedToSaveShortio") });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to save Short.io settings" });
+      setMessage({ type: "error", text: t("settings.failedToSaveShortio") });
     } finally {
       setSavingShortio(false);
     }
@@ -271,11 +273,11 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Short.io settings removed" });
+        setMessage({ type: "success", text: t("settings.shortioRemoved") });
         fetchSettings();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to remove Short.io settings" });
+      setMessage({ type: "error", text: t("settings.failedToRemoveShortio") });
     } finally {
       setSavingShortio(false);
     }
@@ -295,16 +297,16 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Unsplash API key saved successfully!" });
+        setMessage({ type: "success", text: t("settings.unsplashSaved") });
         setUnsplashApiKeyInput("");
         setShowUnsplash(false);
         fetchSettings();
       } else {
         const data = await res.json();
-        setMessage({ type: "error", text: data.error || "Failed to save Unsplash API key" });
+        setMessage({ type: "error", text: data.error || t("settings.failedToSaveUnsplash") });
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to save Unsplash API key" });
+      setMessage({ type: "error", text: t("settings.failedToSaveUnsplash") });
     } finally {
       setSavingUnsplash(false);
     }
@@ -323,11 +325,11 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Unsplash API key removed" });
+        setMessage({ type: "success", text: t("settings.unsplashRemoved") });
         fetchSettings();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to remove Unsplash API key" });
+      setMessage({ type: "error", text: t("settings.failedToRemoveUnsplash") });
     } finally {
       setSavingUnsplash(false);
     }
@@ -351,11 +353,11 @@ export default function SettingsPage() {
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Quizzes
+            {t("settings.backToQuizzes")}
           </Link>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Settings className="w-8 h-8" />
-            Settings
+            {t("settings.title")}
           </h1>
         </div>
       </div>
@@ -378,11 +380,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="w-5 h-5" />
-            Backup & Restore
+            {t("settings.backupRestore")}
           </CardTitle>
           <CardDescription>
-            Export your API keys and settings to an encrypted file for backup or
-            migration.
+            {t("settings.backupRestoreDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -395,7 +396,7 @@ export default function SettingsPage() {
               }}
             >
               <Download className="mr-2 h-4 w-4" />
-              Export Settings
+              {t("settings.exportSettings")}
             </Button>
             <Button
               variant="outline"
@@ -405,7 +406,7 @@ export default function SettingsPage() {
               }}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Import Settings
+              {t("settings.importSettings")}
             </Button>
           </div>
 
@@ -413,8 +414,7 @@ export default function SettingsPage() {
             <div className="flex gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 text-sm">
               <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-amber-900 dark:text-amber-100">
-                Your export file is encrypted with a password. Keep your password
-                safe - it cannot be recovered.
+                {t("settings.exportNotice")}
               </p>
             </div>
           )}
@@ -426,11 +426,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="w-5 h-5" />
-            External Tunnel
+            {t("settings.externalTunnel")}
           </CardTitle>
           <CardDescription>
-            Enable external access so mobile players can join your quizzes by scanning QR codes.
-            Get a free ngrok auth token at{" "}
+            {t("settings.externalTunnelDescPrefix")}{" "}
             <a
               href="https://dashboard.ngrok.com/get-started/your-authtoken"
               target="_blank"
@@ -439,6 +438,7 @@ export default function SettingsPage() {
             >
               ngrok.com
             </a>
+            {t("settings.externalTunnelDescSuffix")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -446,7 +446,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Key className="w-4 h-4 text-muted-foreground" />
-              <Label>ngrok Auth Token</Label>
+              <Label>{t("settings.ngrokAuthToken")}</Label>
             </div>
 
               {settings?.hasToken ? (
@@ -460,7 +460,7 @@ export default function SettingsPage() {
                   onClick={() => setRemoveTokenDialogOpen(true)}
                   disabled={saving}
                 >
-                  Remove
+                  {t("settings.remove")}
                 </Button>
               </div>
             ) : showToken ? (
@@ -468,23 +468,23 @@ export default function SettingsPage() {
                 <div className="flex gap-2">
                   <Input
                     type="password"
-                    placeholder="Paste your ngrok auth token..."
+                    placeholder={t("settings.tokenPlaceholder")}
                     value={tokenInput}
                     onChange={(e) => setTokenInput(e.target.value)}
                     className="flex-1"
                   />
                   <Button onClick={saveToken} disabled={!tokenInput || saving}>
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : t("settings.save")}
                   </Button>
                   <Button variant="outline" onClick={() => setShowToken(false)}>
-                    Cancel
+                    {t("settings.cancel")}
                   </Button>
                 </div>
               </div>
             ) : (
               <Button variant="outline" onClick={() => setShowToken(true)}>
                 <Key className="w-4 h-4 mr-2" />
-                Add Token
+                {t("settings.addToken")}
               </Button>
             )}
           </div>
@@ -494,11 +494,11 @@ export default function SettingsPage() {
             <div className="space-y-4 pt-4 border-t">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Tunnel Status:</span>
+                  <span className="text-sm font-medium">{t("settings.tunnelStatus")}</span>
                   {settings.tunnelRunning ? (
-                    <Badge className="bg-green-500">Running</Badge>
+                    <Badge className="bg-green-500">{t("settings.running")}</Badge>
                   ) : (
-                    <Badge variant="secondary">Stopped</Badge>
+                    <Badge variant="secondary">{t("settings.stopped")}</Badge>
                   )}
                 </div>
 
@@ -513,7 +513,7 @@ export default function SettingsPage() {
                     ) : (
                       <Square className="w-4 h-4 mr-2" />
                     )}
-                    Stop Tunnel
+                    {t("settings.stopTunnel")}
                   </Button>
                 ) : (
                   <Button onClick={startTunnel} disabled={tunnelLoading}>
@@ -522,14 +522,14 @@ export default function SettingsPage() {
                     ) : (
                       <Play className="w-4 h-4 mr-2" />
                     )}
-                    Start Tunnel
+                    {t("settings.startTunnel")}
                   </Button>
                 )}
               </div>
 
               {settings.tunnelUrl && (
                 <div className="space-y-2">
-                  <Label>Public URL</Label>
+                  <Label>{t("settings.publicUrl")}</Label>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 px-3 py-2 bg-muted rounded-md text-sm break-all">
                       {settings.tunnelUrl}
@@ -552,7 +552,7 @@ export default function SettingsPage() {
                     </a>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    This URL will be used for QR codes when you host a game.
+                    {t("settings.publicUrlHint")}
                   </p>
                 </div>
               )}
@@ -566,11 +566,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Link2 className="w-5 h-5" />
-            Short.io URL Shortener
+            {t("settings.shortio")}
           </CardTitle>
           <CardDescription>
-            Generate short URLs for join links to make them easier to share.
-            Get a free API key and find your domain at{" "}
+            {t("settings.shortioDescPrefix")}{" "}
             <a
               href="https://app.short.io/settings/integrations/api-key"
               target="_blank"
@@ -579,6 +578,7 @@ export default function SettingsPage() {
             >
               short.io
             </a>
+            {t("settings.shortioDescSuffix")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -586,7 +586,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Key className="w-4 h-4 text-muted-foreground" />
-              <Label>Short.io API Key</Label>
+              <Label>{t("settings.shortioApiKey")}</Label>
             </div>
 
             {settings?.hasShortioApiKey ? (
@@ -601,12 +601,12 @@ export default function SettingsPage() {
                     onClick={() => setShowRemoveDialog(true)}
                     disabled={savingShortio}
                   >
-                    Remove
+                    {t("settings.remove")}
                   </Button>
                 </div>
                 {settings.shortioDomain && (
                   <div className="space-y-2">
-                    <Label className="text-sm text-muted-foreground">Domain</Label>
+                    <Label className="text-sm text-muted-foreground">{t("settings.domain")}</Label>
                     <code className="block px-3 py-2 bg-muted rounded-md text-sm">
                       {settings.shortioDomain}
                     </code>
@@ -618,21 +618,21 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Input
                     type="password"
-                    placeholder="Paste your Short.io API key..."
+                    placeholder={t("settings.shortioKeyPlaceholder")}
                     value={shortioApiKeyInput}
                     onChange={(e) => setShortioApiKeyInput(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Domain (required)</Label>
+                  <Label>{t("settings.domainLabel")}</Label>
                   <Input
                     type="text"
-                    placeholder="e.g., link.yourdomain.com"
+                    placeholder={t("settings.domainPlaceholder")}
                     value={shortioDomainInput}
                     onChange={(e) => setShortioDomainInput(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Your Short.io domain (find it in your Short.io dashboard)
+                    {t("settings.domainHint")}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -643,18 +643,18 @@ export default function SettingsPage() {
                     {savingShortio ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      "Save"
+                      t("settings.save")
                     )}
                   </Button>
                   <Button variant="outline" onClick={() => setShowShortio(false)}>
-                    Cancel
+                    {t("settings.cancel")}
                   </Button>
                 </div>
               </div>
             ) : (
               <Button variant="outline" onClick={() => setShowShortio(true)}>
                 <Key className="w-4 h-4 mr-2" />
-                Add Short.io Settings
+                {t("settings.addShortio")}
               </Button>
             )}
           </div>
@@ -662,8 +662,7 @@ export default function SettingsPage() {
           {settings?.hasShortioApiKey && (
             <div className="pt-4 border-t">
               <p className="text-sm text-muted-foreground">
-                Short URLs will automatically be generated for join links when available.
-                If URL shortening fails, the full URL will be used as a fallback.
+                {t("settings.shortioHint")}
               </p>
             </div>
           )}
@@ -678,11 +677,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Image className="w-5 h-5" />
-            Unsplash Images
+            {t("settings.unsplash")}
           </CardTitle>
           <CardDescription>
-            Provide an Unsplash Access Key to let AI-created quizzes include real images.
-            Get a key at{" "}
+            {t("settings.unsplashDescPrefix")}{" "}
             <a
               href="https://unsplash.com/developers"
               target="_blank"
@@ -691,13 +689,14 @@ export default function SettingsPage() {
             >
               unsplash.com/developers
             </a>
+            {t("settings.unsplashDescSuffix")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Key className="w-4 h-4 text-muted-foreground" />
-              <Label>Unsplash Access Key</Label>
+              <Label>{t("settings.unsplashKey")}</Label>
             </div>
 
             {settings?.hasUnsplashApiKey ? (
@@ -712,11 +711,11 @@ export default function SettingsPage() {
                     onClick={() => setShowRemoveUnsplashDialog(true)}
                     disabled={savingUnsplash}
                   >
-                    Remove
+                    {t("settings.remove")}
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  AI quiz creation will fetch topical images from Unsplash.
+                  {t("settings.unsplashHint")}
                 </p>
               </div>
             ) : showUnsplash ? (
@@ -724,12 +723,12 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Input
                     type="password"
-                    placeholder="Paste your Unsplash access key..."
+                    placeholder={t("settings.unsplashKeyPlaceholder")}
                     value={unsplashApiKeyInput}
                     onChange={(e) => setUnsplashApiKeyInput(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Stored securely and only used server-side for image lookup.
+                    {t("settings.unsplashKeyHint")}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -740,18 +739,18 @@ export default function SettingsPage() {
                     {savingUnsplash ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      "Save"
+                      t("settings.save")
                     )}
                   </Button>
                   <Button variant="outline" onClick={() => setShowUnsplash(false)}>
-                    Cancel
+                    {t("settings.cancel")}
                   </Button>
                 </div>
               </div>
             ) : (
               <Button variant="outline" onClick={() => setShowUnsplash(true)}>
                 <Key className="w-4 h-4 mr-2" />
-                Add Unsplash Access Key
+                {t("settings.addUnsplash")}
               </Button>
             )}
           </div>
@@ -759,7 +758,7 @@ export default function SettingsPage() {
           {settings?.hasUnsplashApiKey && (
             <div className="pt-4 border-t">
               <p className="text-sm text-muted-foreground">
-                AI quiz creation will attach images to sections and many questions automatically.
+                {t("settings.unsplashHint2")}
               </p>
             </div>
           )}
@@ -769,19 +768,19 @@ export default function SettingsPage() {
       <AlertDialog open={removeTokenDialogOpen} onOpenChange={setRemoveTokenDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove ngrok token?</AlertDialogTitle>
+            <AlertDialogTitle>{t("settings.removeNgrokTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will stop your external tunnel until you add a new token. Are you sure you want to continue?
+              {t("settings.removeNgrokDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={saving}>{t("settings.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={removeToken}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={saving}
             >
-              {saving ? "Removing..." : "Remove Token"}
+              {saving ? t("settings.removing") : t("settings.removeToken")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -791,10 +790,9 @@ export default function SettingsPage() {
       <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Short.io Settings?</DialogTitle>
+            <DialogTitle>{t("settings.removeShortioTitle")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove your Short.io API key and domain?
-              Your join links will no longer be shortened.
+              {t("settings.removeShortioDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -803,7 +801,7 @@ export default function SettingsPage() {
               onClick={() => setShowRemoveDialog(false)}
               disabled={savingShortio}
             >
-              Cancel
+              {t("settings.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -813,7 +811,7 @@ export default function SettingsPage() {
               {savingShortio ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Remove Settings"
+                t("settings.removeSettings")
               )}
             </Button>
           </DialogFooter>
@@ -824,9 +822,9 @@ export default function SettingsPage() {
       <Dialog open={showRemoveUnsplashDialog} onOpenChange={setShowRemoveUnsplashDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Remove Unsplash Access Key?</DialogTitle>
+            <DialogTitle>{t("settings.removeUnsplashTitle")}</DialogTitle>
             <DialogDescription>
-              AI quiz creation will stop attaching Unsplash images if you remove this key.
+              {t("settings.removeUnsplashDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -835,7 +833,7 @@ export default function SettingsPage() {
               onClick={() => setShowRemoveUnsplashDialog(false)}
               disabled={savingUnsplash}
             >
-              Cancel
+              {t("settings.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -845,7 +843,7 @@ export default function SettingsPage() {
               {savingUnsplash ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "Remove API Key"
+                t("settings.removeApiKey")
               )}
             </Button>
           </DialogFooter>

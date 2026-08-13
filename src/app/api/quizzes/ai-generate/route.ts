@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuizWithAI } from "@/lib/openai-quiz-generator";
 import { requireAdmin } from "@/lib/auth";
+import { resolveSourceLanguage } from "@/lib/source-language";
 
 // POST /api/quizzes/ai-generate - Generate a quiz with AI (admin only)
 export async function POST(request: NextRequest) {
@@ -14,6 +15,7 @@ export async function POST(request: NextRequest) {
       questionCount = 10,
       sectionCount = 2,
       additionalNotes,
+      sourceLanguage,
     } = body;
 
     if (!topic || typeof topic !== "string") {
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
         ? parsedSectionCount
         : 2,
       additionalNotes,
+      sourceLanguage: typeof sourceLanguage === "string" ? sourceLanguage : undefined,
     });
 
     return NextResponse.json(

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Play, Monitor, Loader2 } from "lucide-react";
 import { NavHeader } from "@/components/nav-header";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Quiz {
   id: string;
@@ -31,6 +32,7 @@ function HostPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedQuizId = searchParams.get("quizId");
+  const { t } = useTranslation();
 
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [selectedQuizId, setSelectedQuizId] = useState<string>(preselectedQuizId || "");
@@ -99,10 +101,10 @@ function HostPageContent() {
         router.push(`/host/${game.gameCode}/control`);
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to create game");
+        setError(data.error || t("errors.failedToCreateGame"));
       }
     } catch {
-      setError("Failed to create game");
+      setError(t("errors.failedToCreateGame"));
     } finally {
       setCreating(false);
     }
@@ -116,40 +118,39 @@ function HostPageContent() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Monitor className="w-5 h-5" />
-            Host a Game
+            {t("host.hostAGame")}
           </CardTitle>
           <CardDescription>
-            Select a quiz to start a new game session. Players will be able to
-            join using a QR code or game code.
+            {t("host.hostAGameDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {loading ? (
-            <p className="text-muted-foreground">Loading quizzes...</p>
+            <p className="text-muted-foreground">{t("host.loadingQuizzes")}</p>
           ) : quizzes.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
-                No quizzes available. Create a quiz first!
+                {t("host.noQuizzesAvailable")}
               </p>
               <Link href="/admin/quiz/new">
-                <Button>Create Quiz</Button>
+                <Button>{t("admin.createQuiz")}</Button>
               </Link>
             </div>
           ) : (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Select Quiz</label>
+                <label className="text-sm font-medium">{t("host.selectQuiz")}</label>
                 <Select
                   value={selectedQuizId}
                   onValueChange={setSelectedQuizId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a quiz..." />
+                    <SelectValue placeholder={t("host.chooseQuiz")} />
                   </SelectTrigger>
                   <SelectContent>
                     {quizzes.map((quiz) => (
                       <SelectItem key={quiz.id} value={quiz.id}>
-                        {quiz.title} ({quiz.questionCount} questions)
+                        {quiz.title} ({t("host.questionsCount", { count: quiz.questionCount })})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -160,8 +161,9 @@ function HostPageContent() {
                 <div className="p-4 bg-muted rounded-lg">
                   <h3 className="font-medium">{selectedQuiz.title}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {selectedQuiz.questionCount} question
-                    {selectedQuiz.questionCount !== 1 ? "s" : ""}
+                    {selectedQuiz.questionCount === 1
+                      ? t("host.questionCountOne", { count: selectedQuiz.questionCount })
+                      : t("host.questionsCount", { count: selectedQuiz.questionCount })}
                   </p>
                 </div>
               )}
@@ -176,12 +178,11 @@ function HostPageContent() {
                   className="w-full"
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  {creating ? "Creating Game..." : "Start Game"}
+                  {creating ? t("host.creatingGame") : t("host.startGame")}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  This will open two windows: a display window for sharing on
-                  Teams, and a control panel for managing the game.
+                  {t("host.twoWindowsNote")}
                 </p>
               </div>
             </>

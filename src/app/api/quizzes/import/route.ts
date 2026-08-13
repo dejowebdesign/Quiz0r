@@ -14,6 +14,7 @@ import { ExportedQuiz } from "@/types/export";
 import { sanitizeQuizData } from "@/lib/sanitize";
 import { validateQuizStructure } from "@/lib/validate-import";
 import { requireAdmin } from "@/lib/auth";
+import { resolveSourceLanguage } from "@/lib/source-language";
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request);
@@ -120,6 +121,7 @@ export async function POST(request: NextRequest) {
         description: sanitizedData.description,
         theme: sanitizedData.theme,
         autoAdmit: sanitizedData.autoAdmit ?? true,
+        sourceLanguage: resolveSourceLanguage(sanitizedData.sourceLanguage),
         hintCount: powerUps.hintCount ?? 0,
         copyAnswerCount: powerUps.copyAnswerCount ?? 0,
         doublePointsCount: powerUps.doublePointsCount ?? 0,

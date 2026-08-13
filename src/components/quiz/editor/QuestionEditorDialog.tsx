@@ -15,6 +15,7 @@ import {
   Sparkles,
   Copy,
 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,6 +104,7 @@ interface QuestionEditorDialogProps {
   availableTranslationLanguages: LanguageCode[];
   activeTranslationTab: string;
   setActiveTranslationTab: (value: string) => void;
+  sourceLanguage: LanguageCode;
   questionTranslations: Record<LanguageCode, any>;
   answerTranslations: Record<string, Record<LanguageCode, string>>;
   onAddTranslationLanguage: (lang: LanguageCode) => void;
@@ -167,6 +169,7 @@ export function QuestionEditorDialog({
   availableTranslationLanguages,
   activeTranslationTab,
   setActiveTranslationTab,
+  sourceLanguage,
   questionTranslations,
   answerTranslations,
   onAddTranslationLanguage,
@@ -186,6 +189,7 @@ export function QuestionEditorDialog({
   onSave,
   onCancel,
 }: QuestionEditorDialogProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [advancedOpen, setAdvancedOpen] = useState(easterEggEnabled);
 
@@ -253,10 +257,10 @@ export function QuestionEditorDialog({
           <div className="flex items-start justify-between">
             <DialogHeader className="flex-1">
               <DialogTitle>
-                {editingQuestion ? "Edit" : "Add"} Question
+                {editingQuestion ? t("editor.fields.editQuestion") : t("editor.fields.addQuestion")}
               </DialogTitle>
               <DialogDescription>
-                Create a multiple choice question with 2-6 answer options.
+                {t("editor.fields.dialogDesc")}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -288,7 +292,7 @@ export function QuestionEditorDialog({
                     >
                       {SupportedLanguages[lang].flag}{" "}
                       {SupportedLanguages[lang].name}
-                      {lang !== "en" &&
+                      {lang !== sourceLanguage &&
                         (getTranslationStatus(lang) === "complete" ? (
                           <Check className="w-3 h-3 text-green-500" />
                         ) : getTranslationStatus(lang) === "partial" ? (
@@ -306,14 +310,14 @@ export function QuestionEditorDialog({
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
                     <Plus className="w-4 h-4 mr-1" />
-                    Add Translation
+                    {t("editor.fields.addTranslation")}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   {(Object.keys(SupportedLanguages) as LanguageCode[])
                     .filter(
                       (lang) =>
-                        lang !== "en" &&
+                        lang !== sourceLanguage &&
                         !availableTranslationLanguages.includes(lang)
                     )
                     .map((lang) => (
@@ -330,8 +334,8 @@ export function QuestionEditorDialog({
             </div>
           )}
 
-          {/* English (original) tab */}
-          <TabsContent value="en" className="space-y-6 mt-0">
+          {/* Source (original) tab */}
+          <TabsContent value={sourceLanguage} className="space-y-6 mt-0">
             {/* Section 1: Question Text + Image */}
             <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
               <div className="space-y-2">
@@ -340,7 +344,7 @@ export function QuestionEditorDialog({
                 </Label>
                 <Textarea
                   id="questionText"
-                  placeholder="Enter your question..."
+                  placeholder={t("editor.fields.questionPlaceholder")}
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
                   rows={2}
@@ -396,17 +400,17 @@ export function QuestionEditorDialog({
                       {uploading ? (
                         <div className="flex flex-col items-center text-muted-foreground">
                           <Loader2 className="w-5 h-5 animate-spin mb-1" />
-                          <span className="text-xs">Uploading...</span>
+                          <span className="text-xs">{t("editor.fields.uploading")}</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center text-muted-foreground">
                           <Upload className="w-5 h-5 mb-1" />
-                          <span className="text-xs">Click to upload</span>
+                          <span className="text-xs">{t("editor.fields.clickToUpload")}</span>
                         </div>
                       )}
                     </Button>
                     <Input
-                      placeholder="Or paste URL"
+                      placeholder={t("editor.fields.orPasteUrl")}
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       className="flex-1"
@@ -419,7 +423,7 @@ export function QuestionEditorDialog({
             {/* Section 2: Type + Time/Points */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Type</Label>
+                <Label>{t("editor.fields.type")}</Label>
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -447,7 +451,7 @@ export function QuestionEditorDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="timeLimit">Time (sec)</Label>
+                <Label htmlFor="timeLimit">{t("editor.fields.timeSec")}</Label>
                 <Input
                   id="timeLimit"
                   type="number"
@@ -459,7 +463,7 @@ export function QuestionEditorDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="points">Points</Label>
+                <Label htmlFor="points">{t("editor.fields.points")}</Label>
                 <Input
                   id="points"
                   type="number"
@@ -479,12 +483,12 @@ export function QuestionEditorDialog({
                   Answers <span className="text-destructive">*</span>
                   {!hasEnoughAnswers && (
                     <span className="text-xs text-destructive ml-2">
-                      (min 2 required)
+                      {t("editor.fields.minRequired")}
                     </span>
                   )}
                   {hasEnoughAnswers && !hasCorrectAnswer && (
                     <span className="text-xs text-destructive ml-2">
-                      (mark at least one correct)
+                      {t("editor.fields.markCorrect")}
                     </span>
                   )}
                 </Label>
@@ -496,7 +500,7 @@ export function QuestionEditorDialog({
                   disabled={answers.length >= 6}
                 >
                   <Plus className="w-3 h-3 mr-1" />
-                  Add
+                  {t("editor.fields.add")}
                 </Button>
               </div>
 
@@ -505,7 +509,7 @@ export function QuestionEditorDialog({
                   <div key={index} className="flex items-center gap-2">
                     <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
                     <Input
-                      placeholder={`Answer ${index + 1}`}
+                      placeholder={t("editor.fields.answerN", { n: index + 1 })}
                       value={answer.answerText}
                       onChange={(e) =>
                         updateAnswer(index, "answerText", e.target.value)
@@ -556,10 +560,10 @@ export function QuestionEditorDialog({
             {/* Section 4: Host Notes + Hint */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="hostNotes">Host Notes (optional)</Label>
+                <Label htmlFor="hostNotes">{t("editor.fields.hostNotes")}</Label>
                 <Textarea
                   id="hostNotes"
-                  placeholder="Notes visible only to the host..."
+                  placeholder={t("editor.fields.hostNotesPlaceholder")}
                   value={hostNotes}
                   onChange={(e) => setHostNotes(e.target.value)}
                   rows={2}
@@ -583,7 +587,7 @@ export function QuestionEditorDialog({
                 </div>
                 <Textarea
                   id="hint"
-                  placeholder="Provide a helpful hint..."
+                  placeholder={t("editor.fields.hintPlaceholder")}
                   value={hint}
                   onChange={(e) => setHint(e.target.value)}
                   rows={2}
@@ -605,7 +609,7 @@ export function QuestionEditorDialog({
                   variant="ghost"
                   className="w-full justify-between text-muted-foreground"
                 >
-                  <span>Advanced Options</span>
+                  <span>{t("editor.fields.advancedOptions")}</span>
                   {advancedOpen ? (
                     <ChevronUp className="w-4 h-4" />
                   ) : (
@@ -617,7 +621,7 @@ export function QuestionEditorDialog({
                 <div className="p-4 border rounded-lg space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="easterEgg">Easter Egg Button</Label>
+                      <Label htmlFor="easterEgg">{t("editor.fields.easterEggButton")}</Label>
                       <p className="text-xs text-muted-foreground">
                         Add a special button that opens a web page
                       </p>
@@ -632,10 +636,10 @@ export function QuestionEditorDialog({
                   {easterEggEnabled && (
                     <div className="space-y-3 pl-4 border-l-2">
                       <div className="space-y-2">
-                        <Label htmlFor="easterEggButtonText">Button Text</Label>
+                        <Label htmlFor="easterEggButtonText">{t("editor.fields.buttonText")}</Label>
                         <Input
                           id="easterEggButtonText"
-                          placeholder="Click for a surprise!"
+                          placeholder={t("editor.fields.buttonTextPlaceholder")}
                           value={easterEggButtonText}
                           onChange={(e) =>
                             setEasterEggButtonText(e.target.value)
@@ -649,7 +653,7 @@ export function QuestionEditorDialog({
                         <Input
                           id="easterEggUrl"
                           type="url"
-                          placeholder="https://example.com"
+                          placeholder={t("editor.fields.urlPlaceholder")}
                           value={easterEggUrl}
                           onChange={(e) => setEasterEggUrl(e.target.value)}
                         />
@@ -657,7 +661,7 @@ export function QuestionEditorDialog({
 
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label htmlFor="disableScoring">Disable Scoring</Label>
+                          <Label htmlFor="disableScoring">{t("editor.fields.disableScoring")}</Label>
                           <p className="text-xs text-muted-foreground">
                             Players who click won&apos;t earn points
                           </p>
@@ -678,7 +682,7 @@ export function QuestionEditorDialog({
           {/* Translation tabs */}
           {editingQuestion &&
             availableTranslationLanguages
-              .filter((lang) => lang !== "en")
+              .filter((lang) => lang !== sourceLanguage)
               .map((lang) => (
                 <TabsContent
                   key={lang}
@@ -687,7 +691,7 @@ export function QuestionEditorDialog({
                 >
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-muted-foreground">
-                      Translate to {SupportedLanguages[lang].name}
+                      {t("editor.fields.translateTo", { name: SupportedLanguages[lang].name })}
                     </p>
                     <div className="flex gap-2">
                       <Button
@@ -699,12 +703,12 @@ export function QuestionEditorDialog({
                         {autoTranslatingQuestion === lang ? (
                           <>
                             <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                            Translating...
+                            {t("editor.translate.translating")}
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-3 h-3 mr-1" />
-                            Auto-Translate
+                            {t("editor.fields.autoTranslate")}
                           </>
                         )}
                       </Button>
@@ -716,7 +720,7 @@ export function QuestionEditorDialog({
                         {savingTranslation === lang ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
                         ) : (
-                          "Save"
+                          t("editor.fields.save")
                         )}
                       </Button>
                     </div>
@@ -725,7 +729,7 @@ export function QuestionEditorDialog({
                   {/* Question Translation */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label>Question</Label>
+                      <Label>{t("editor.fields.question")}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -734,7 +738,7 @@ export function QuestionEditorDialog({
                         }
                       >
                         <Copy className="w-3 h-3 mr-1" />
-                        Copy English
+                        {t("editor.fields.copySource", { name: SupportedLanguages[sourceLanguage].name })}
                       </Button>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -753,7 +757,7 @@ export function QuestionEditorDialog({
                             e.target.value
                           )
                         }
-                        placeholder={`${SupportedLanguages[lang].name} translation...`}
+                        placeholder={t("editor.fields.translationPlaceholder", { name: SupportedLanguages[lang].name })}
                         rows={2}
                         className="text-sm"
                       />
@@ -763,7 +767,7 @@ export function QuestionEditorDialog({
                   {/* Answer Translations */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label>Answers</Label>
+                      <Label>{t("editor.fields.answers")}</Label>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -774,7 +778,7 @@ export function QuestionEditorDialog({
                         }
                       >
                         <Copy className="w-3 h-3 mr-1" />
-                        Copy English
+                        {t("editor.fields.copySource", { name: SupportedLanguages[sourceLanguage].name })}
                       </Button>
                     </div>
                     {answers.map((answer, index) => (
@@ -798,7 +802,7 @@ export function QuestionEditorDialog({
                                 e.target.value
                               )
                             }
-                            placeholder={`${SupportedLanguages[lang].name}...`}
+                            placeholder={t("editor.fields.translationPlaceholder", { name: SupportedLanguages[lang].name })}
                             className="text-sm"
                           />
                           <Button
@@ -820,7 +824,7 @@ export function QuestionEditorDialog({
                   {hint && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label>Hint</Label>
+                        <Label>{t("editor.fields.hint")}</Label>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -829,7 +833,7 @@ export function QuestionEditorDialog({
                           }
                         >
                           <Copy className="w-3 h-3 mr-1" />
-                          Copy English
+                          {t("editor.fields.copySource", { name: SupportedLanguages[sourceLanguage].name })}
                         </Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -848,7 +852,7 @@ export function QuestionEditorDialog({
                               e.target.value
                             )
                           }
-                          placeholder={`${SupportedLanguages[lang].name} translation...`}
+                          placeholder={t("editor.fields.translationPlaceholder", { name: SupportedLanguages[lang].name })}
                           rows={2}
                           className="text-sm"
                         />
@@ -870,7 +874,7 @@ export function QuestionEditorDialog({
             Cancel
           </Button>
           <Button onClick={onSave} disabled={!canSave}>
-            {editingQuestion ? "Save Changes" : "Add Question"}
+            {editingQuestion ? t("editor.fields.saveChanges") : t("editor.fields.addQuestion")}
           </Button>
         </div>
       </DialogContent>

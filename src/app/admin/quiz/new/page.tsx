@@ -22,11 +22,26 @@ import {
   Palette,
   ChevronRight,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SupportedLanguages, type LanguageCode } from "@/types";
+import { useTranslation } from "@/hooks/useTranslation";
+
+const SOURCE_LANGUAGE_OPTIONS = (Object.keys(SupportedLanguages) as LanguageCode[]).filter(
+  (code) => code !== "sr-Cyrl" // Cyrillic is a translation target; source is authored in Latin script or another base
+);
 
 export default function NewQuizPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [sourceLanguage, setSourceLanguage] = useState<LanguageCode>("en");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,7 +60,7 @@ export default function NewQuizPage() {
       const res = await fetch("/api/quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description }),
+        body: JSON.stringify({ title, description, sourceLanguage }),
       });
 
       if (res.ok) {
@@ -104,6 +119,33 @@ export default function NewQuizPage() {
                 disabled={loading}
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sourceLanguage" className="flex items-center gap-2">
+                <Languages className="w-4 h-4" />
+                {t("admin.sourceLanguage")}
+              </Label>
+              <Select
+                value={sourceLanguage}
+                onValueChange={(value) => setSourceLanguage(value as LanguageCode)}
+                disabled={loading}
+              >
+                <SelectTrigger id="sourceLanguage" className="w-full">
+                  <SelectValue placeholder="Select source language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOURCE_LANGUAGE_OPTIONS.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {SupportedLanguages[code].flag}{" "}
+                      {SupportedLanguages[code].name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.sourceLanguageHint")}
+              </p>
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

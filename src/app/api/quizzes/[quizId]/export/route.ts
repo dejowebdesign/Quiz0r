@@ -129,6 +129,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         copyAnswerCount: quiz.copyAnswerCount,
         doublePointsCount: quiz.doublePointsCount,
       },
+      sourceLanguage: quiz.sourceLanguage,
       questions: exportedQuestions,
     };
 

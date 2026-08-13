@@ -628,8 +628,8 @@ export default function HostControlPage({
                           <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           <p className="font-medium text-blue-800 dark:text-blue-300 text-sm">
                             {nextQuestionPreview.questionNumber
-                              ? `Up Next (Q${nextQuestionPreview.questionNumber} of ${nextQuestionPreview.totalQuestions})`
-                              : "Up Next"}
+                              ? t("host.upNextQuestion", { current: nextQuestionPreview.questionNumber, total: nextQuestionPreview.totalQuestions })
+                              : t("host.upNext")}
                           </p>
                         </div>
                         {nextQuestionPreview.section ? (
@@ -707,8 +707,8 @@ export default function HostControlPage({
                           <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           <p className="font-medium text-blue-800 dark:text-blue-300 text-sm">
                             {nextQuestionPreview.questionNumber
-                              ? `Up Next (Q${nextQuestionPreview.questionNumber} of ${nextQuestionPreview.totalQuestions})`
-                              : "Up Next"}
+                              ? t("host.upNextQuestion", { current: nextQuestionPreview.questionNumber, total: nextQuestionPreview.totalQuestions })
+                              : t("host.upNext")}
                           </p>
                         </div>
                         {nextQuestionPreview.section ? (

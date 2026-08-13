@@ -1,28 +1,60 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { SupportedLanguages, type LanguageCode } from "@/types";
 import enLocale from "@/lib/locales/en.json";
+import esLocale from "@/lib/locales/es.json";
+import frLocale from "@/lib/locales/fr.json";
 import deLocale from "@/lib/locales/de.json";
-import srLocale from "@/lib/locales/sr.json";
+import heLocale from "@/lib/locales/he.json";
+import jaLocale from "@/lib/locales/ja.json";
+import zhCNLocale from "@/lib/locales/zh-CN.json";
+import arLocale from "@/lib/locales/ar.json";
+import ptLocale from "@/lib/locales/pt.json";
+import ruLocale from "@/lib/locales/ru.json";
+import itLocale from "@/lib/locales/it.json";
+import srLatnLocale from "@/lib/locales/sr-Latn.json";
+import srCyrlLocale from "@/lib/locales/sr-Cyrl.json";
 
-// Supported application locales (separate from quiz content languages)
-export const AppSupportedLocales = {
-  en: { code: "en" as const, name: "English", flag: "🇬🇧" },
-  de: { code: "de" as const, name: "Deutsch", flag: "🇩🇪" },
-  sr: { code: "sr" as const, name: "Srpski", flag: "🇷🇸" },
-} as const;
+// Supported application UI locales. Derived from the single source of truth
+// (`SupportedLanguages` in src/types/index.ts) so the code/flag/nativeName list
+// is never duplicated. The quiz-content language list and the UI-locale list
+// remain logically independent — they just share the same underlying codes.
+export const AppSupportedLocales = Object.fromEntries(
+  Object.entries(SupportedLanguages).map(([key, value]) => [
+    key,
+    { code: value.code, name: value.nativeName, flag: value.flag },
+  ])
+) as Record<LanguageCode, { code: string; name: string; flag: string }>;
 
-export type AppLocale = keyof typeof AppSupportedLocales;
+export type AppLocale = LanguageCode;
 
 // All available locales - English is the master/fallback
 const locales: Record<AppLocale, Record<string, unknown>> = {
   en: enLocale,
+  es: esLocale,
+  fr: frLocale,
   de: deLocale,
-  sr: srLocale,
+  he: heLocale,
+  ja: jaLocale,
+  "zh-CN": zhCNLocale,
+  ar: arLocale,
+  pt: ptLocale,
+  ru: ruLocale,
+  it: itLocale,
+  "sr-Latn": srLatnLocale,
+  "sr-Cyrl": srCyrlLocale,
 };
 
 // Master locale for fallback
 const MASTER_LOCALE: AppLocale = "en";
+
+// Locales rendered right-to-left
+const RTL_LOCALES: AppLocale[] = ["he", "ar"];
+
+function isRtl(loc: AppLocale): boolean {
+  return RTL_LOCALES.includes(loc);
+}
 
 // localStorage key for persisting locale
 const LOCALE_STORAGE_KEY = "quiz0r-locale";
@@ -36,6 +68,8 @@ interface I18nContextType {
   t: (key: string, params?: Record<string, string | number>) => string;
   availableLocales: typeof AppSupportedLocales;
   htmlLang: string;
+  dir: "ltr" | "rtl";
+  isRtl: boolean;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -67,6 +101,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLocaleState(storedLocale);
     }
   }, []);
+
+  // Keep <html lang> and <html dir> in sync with the active locale.
+  // dir="rtl" is applied for Hebrew and Arabic; everything else is "ltr".
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = locale;
+    document.documentElement.dir = isRtl(locale) ? "rtl" : "ltr";
+  }, [locale]);
 
   // Sync changes to localStorage
   const setLocale = useCallback((newLocale: AppLocale) => {
@@ -103,6 +145,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   // HTML lang attribute value
   const htmlLang = locale;
+  const rtl = isRtl(locale);
+  const dir: "ltr" | "rtl" = rtl ? "rtl" : "ltr";
 
   return (
     <I18nContext.Provider
@@ -112,6 +156,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         t,
         availableLocales: AppSupportedLocales,
         htmlLang,
+        dir,
+        isRtl: rtl,
       }}
     >
       {children}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { SupportedLanguages, type LanguageCode } from "@/types";
 import { requireAdmin } from "@/lib/auth";
+import { resolveSourceLanguage } from "@/lib/source-language";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid language code" }, { status: 400 });
     }
 
-    // Validate that language is not English
-    if (language === "en") {
+    // The source (base) language cannot be deleted — it is the original content.
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      select: { sourceLanguage: true },
+    });
+    const sourceLanguage = resolveSourceLanguage(quiz?.sourceLanguage);
+
+    if (language === sourceLanguage) {
       return NextResponse.json(
-        { error: "Cannot delete English (base language)" },
+        { error: `Cannot delete the quiz's source language (${SupportedLanguages[sourceLanguage as LanguageCode].name})` },
         { status: 400 }
       );
     }

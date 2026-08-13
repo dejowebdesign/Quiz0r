@@ -27,19 +27,18 @@ const darkModeScript = `
   })();
 `;
 
-// Inline script to set locale before React hydrates (prevents FOUC)
+// Inline script to set locale (lang + dir) before React hydrates (prevents FOUC)
 const localeScript = `
   (function() {
     try {
       var stored = localStorage.getItem('quiz0r-locale');
-      // Store locale for server-side rendering context if needed
-      if (stored) {
-        document.documentElement.lang = stored;
-      } else {
-        document.documentElement.lang = 'en';
-      }
+      var rtlMap = { he: true, ar: true };
+      var loc = stored || 'en';
+      document.documentElement.lang = loc;
+      document.documentElement.dir = rtlMap[loc] ? 'rtl' : 'ltr';
     } catch (e) {
       document.documentElement.lang = 'en';
+      document.documentElement.dir = 'ltr';
     }
   })();
 `;

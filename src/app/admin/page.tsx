@@ -101,6 +101,7 @@ export default function AdminDashboard() {
   const [aiQuestionCount, setAiQuestionCount] = useState(10);
   const [aiSectionCount, setAiSectionCount] = useState(2);
   const [aiNotes, setAiNotes] = useState("");
+  const [aiSourceLanguage, setAiSourceLanguage] = useState<LanguageCode>("en");
   const [aiStatus, setAiStatus] = useState<string | null>(null);
   const [aiProgress, setAiProgress] = useState(0);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -261,6 +262,7 @@ export default function AdminDashboard() {
           questionCount: aiQuestionCount,
           sectionCount: aiSectionCount,
           additionalNotes: aiNotes.trim(),
+          sourceLanguage: aiSourceLanguage,
         }),
       });
 
@@ -449,6 +451,32 @@ export default function AdminDashboard() {
                     <SelectItem value="hard">{t("admin.hard")}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="aiSourceLanguage">{t("admin.sourceLanguage")}</Label>
+                <Select
+                  value={aiSourceLanguage}
+                  onValueChange={(value) => setAiSourceLanguage(value as LanguageCode)}
+                  disabled={aiCreating}
+                >
+                  <SelectTrigger id="aiSourceLanguage">
+                    <SelectValue placeholder={t("admin.sourceLanguage")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(SupportedLanguages) as LanguageCode[])
+                      .filter((code) => code !== "sr-Cyrl")
+                      .map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {SupportedLanguages[code].flag}{" "}
+                          {SupportedLanguages[code].name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.sourceLanguageHint")}
+                </p>
               </div>
 
               <div className="sm:col-span-2 space-y-2">

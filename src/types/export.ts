@@ -32,6 +32,7 @@ export interface ExportedQuiz {
   theme: string | null; // JSON string of QuizTheme
   autoAdmit?: boolean; // Optional for legacy exports
   powerUps?: ExportedPowerUps; // Optional for legacy exports
+  sourceLanguage?: string | null; // Base/source language of the quiz content (optional for legacy imports)
   questions: ExportedQuestion[];
 }
 

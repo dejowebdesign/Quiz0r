@@ -45,7 +45,7 @@ export default function PlayerGamePage({
 }) {
   const { gameCode } = use(params);
   const router = useRouter();
-  const { locale: appLocale, setLocale: setAppLocale, t } = useTranslation();
+  const { locale: appLocale, setLocale: setAppLocale, t, availableLocales } = useTranslation();
   const [playerName, setPlayerName] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [avatarImage, setAvatarImage] = useState<string | null>(null);
@@ -1150,9 +1150,11 @@ export default function PlayerGamePage({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en">🇬🇧 English</SelectItem>
-                  <SelectItem value="de">🇩🇪 Deutsch</SelectItem>
-                  <SelectItem value="sr">🇷🇸 Srpski</SelectItem>
+                  {(Object.keys(availableLocales) as AppLocale[]).map((loc) => (
+                    <SelectItem key={loc} value={loc}>
+                      {availableLocales[loc].flag} {availableLocales[loc].name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

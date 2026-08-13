@@ -26,6 +26,7 @@ import { THEME_PRESETS, PRESET_LIST } from "@/lib/theme-presets";
 import { parseTheme } from "@/lib/theme";
 import { Loader2, Palette, Plus, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ThemeRecord {
   id: string;
@@ -35,6 +36,7 @@ interface ThemeRecord {
 }
 
 export default function ThemeLibraryPage() {
+  const { t } = useTranslation();
   const [customThemes, setCustomThemes] = useState<ThemeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -77,7 +79,7 @@ export default function ThemeLibraryPage() {
   }
 
   const builtInThemes = [
-    { id: "default", name: "Default", description: "App base styling", theme: DEFAULT_THEME },
+    { id: "default", name: t("themes.defaultName"), description: t("themes.defaultDesc"), theme: DEFAULT_THEME },
     ...PRESET_LIST.map((preset) => ({
       id: preset.id,
       name: preset.name,
@@ -92,16 +94,16 @@ export default function ThemeLibraryPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Palette className="w-6 h-6" />
-            Theme Library
+            {t("themes.library")}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Preview, create, and edit themes. Apply them inside each quiz.
+            {t("themes.libraryDesc")}
           </p>
         </div>
         <Link href="/admin/themes/new">
           <Button>
             <Plus className="w-4 h-4 mr-2" />
-            Create Theme
+            {t("themes.create")}
           </Button>
         </Link>
       </div>
@@ -109,8 +111,8 @@ export default function ThemeLibraryPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Built-in Themes</CardTitle>
-            <CardDescription>Ready-made themes you can apply to any quiz</CardDescription>
+            <CardTitle>{t("themes.builtIn")}</CardTitle>
+            <CardDescription>{t("themes.builtInDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
             {builtInThemes.map((theme) => (
@@ -124,7 +126,7 @@ export default function ThemeLibraryPage() {
                   <p className="text-xs text-muted-foreground">{theme.description}</p>
                 </div>
                 <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Built-in
+                  {t("themes.builtInTag")}
                 </span>
               </div>
             ))}
@@ -133,20 +135,20 @@ export default function ThemeLibraryPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Custom Themes</CardTitle>
+            <CardTitle>{t("themes.custom")}</CardTitle>
             <CardDescription>
-              Themes created with the AI wizard or manual JSON editing
+              {t("themes.customDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {loading ? (
               <div className="flex items-center justify-center py-6 text-muted-foreground">
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Loading themes...
+                {t("themes.loading")}
               </div>
             ) : customThemes.length === 0 ? (
               <div className="rounded-lg border border-dashed p-6 text-center text-muted-foreground">
-                No custom themes yet. Click &quot;Create Theme&quot; to get started.
+                {t("themes.noCustom")}
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -166,7 +168,7 @@ export default function ThemeLibraryPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">{theme.name}</p>
                           <p className="text-xs text-muted-foreground line-clamp-2">
-                            {theme.description || "Custom theme"}
+                            {theme.description || t("themes.customFallback")}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -197,20 +199,19 @@ export default function ThemeLibraryPage() {
       <AlertDialog open={!!themeToDelete} onOpenChange={(open) => !open && setThemeToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this theme?</AlertDialogTitle>
+            <AlertDialogTitle>{t("themes.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the theme <strong>{themeToDelete?.name}</strong>. Quizzes using it will fall
-              back to the default styling.
+              {t("themes.deleteDesc", { name: themeToDelete?.name ?? "" })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!deletingId}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={!!deletingId}>{t("themes.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteTheme}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={!!deletingId}
             >
-              {deletingId ? "Deleting..." : "Delete Theme"}
+              {deletingId ? t("themes.deleting") : t("themes.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

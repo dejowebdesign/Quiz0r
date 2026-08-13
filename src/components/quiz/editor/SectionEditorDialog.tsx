@@ -12,6 +12,7 @@ import {
   Copy,
   Sparkles,
 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,7 @@ interface SectionEditorDialogProps {
   availableTranslationLanguages: LanguageCode[];
   activeTranslationTab: string;
   setActiveTranslationTab: (value: string) => void;
+  sourceLanguage: LanguageCode;
   sectionTranslations: Record<LanguageCode, { questionText?: string; hostNotes?: string }>;
   onAddTranslationLanguage: (lang: LanguageCode) => void;
   onUpdateSectionTranslation: (
@@ -99,6 +101,7 @@ export function SectionEditorDialog({
   availableTranslationLanguages,
   activeTranslationTab,
   setActiveTranslationTab,
+  sourceLanguage,
   sectionTranslations,
   onAddTranslationLanguage,
   onUpdateSectionTranslation,
@@ -115,6 +118,7 @@ export function SectionEditorDialog({
   onSave,
   onCancel,
 }: SectionEditorDialogProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canSave = sectionTitle.trim().length > 0;
@@ -140,7 +144,7 @@ export function SectionEditorDialog({
           <div className="flex items-start justify-between">
             <DialogHeader className="flex-1">
               <DialogTitle>
-                {editingSection ? "Edit" : "Add"} Section
+                {editingSection ? t("editor.fields.editSection") : t("editor.fields.addSection")}
               </DialogTitle>
               <DialogDescription>
                 Sections help organize your quiz into logical groups.
@@ -175,7 +179,7 @@ export function SectionEditorDialog({
                       >
                         {SupportedLanguages[lang].flag}{" "}
                         <span className="hidden sm:inline">{SupportedLanguages[lang].name}</span>
-                        {lang !== "en" &&
+                        {lang !== sourceLanguage &&
                           (getTranslationStatus(lang) === "complete" ? (
                             <Check className="w-3 h-3 text-green-500" />
                           ) : getTranslationStatus(lang) === "partial" ? (
@@ -193,14 +197,14 @@ export function SectionEditorDialog({
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Plus className="w-4 h-4 mr-1" />
-                      Add Translation
+                      {t("editor.fields.addTranslation")}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     {(Object.keys(SupportedLanguages) as LanguageCode[])
                       .filter(
                         (lang) =>
-                          lang !== "en" &&
+                          lang !== sourceLanguage &&
                           !availableTranslationLanguages.includes(lang)
                       )
                       .map((lang) => (
@@ -218,7 +222,7 @@ export function SectionEditorDialog({
             )}
 
             {/* English (original) tab */}
-            <TabsContent value="en" className="space-y-4 mt-0">
+            <TabsContent value={sourceLanguage} className="space-y-4 mt-0">
               {/* Section Title */}
               <div className="space-y-2">
                 <Label htmlFor="sectionTitle">
@@ -226,7 +230,7 @@ export function SectionEditorDialog({
                 </Label>
                 <Input
                   id="sectionTitle"
-                  placeholder="e.g., Geography Questions"
+                  placeholder={t("editor.fields.sectionTitlePlaceholder")}
                   value={sectionTitle}
                   onChange={(e) => setSectionTitle(e.target.value)}
                 />
@@ -234,10 +238,10 @@ export function SectionEditorDialog({
 
               {/* Section Description */}
               <div className="space-y-2">
-                <Label htmlFor="sectionDescription">Description (optional)</Label>
+                <Label htmlFor="sectionDescription">{t("editor.fields.sectionDescription")}</Label>
                 <Textarea
                   id="sectionDescription"
-                  placeholder="Brief description of this section..."
+                  placeholder={t("editor.fields.sectionDescriptionPlaceholder")}
                   value={sectionDescription}
                   onChange={(e) => setSectionDescription(e.target.value)}
                   rows={2}
@@ -289,17 +293,17 @@ export function SectionEditorDialog({
                       {uploading ? (
                         <div className="flex flex-col items-center text-muted-foreground">
                           <Loader2 className="w-5 h-5 animate-spin mb-1" />
-                          <span className="text-xs">Uploading...</span>
+                          <span className="text-xs">{t("editor.fields.uploading")}</span>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center text-muted-foreground">
                           <Upload className="w-5 h-5 mb-1" />
-                          <span className="text-xs">Click to upload</span>
+                          <span className="text-xs">{t("editor.fields.clickToUpload")}</span>
                         </div>
                       )}
                     </Button>
                     <Input
-                      placeholder="Or paste URL"
+                      placeholder={t("editor.fields.orPasteUrl")}
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       className="flex-1"
@@ -312,7 +316,7 @@ export function SectionEditorDialog({
             {/* Translation tabs */}
             {editingSection &&
               availableTranslationLanguages
-                .filter((lang) => lang !== "en")
+                .filter((lang) => lang !== sourceLanguage)
                 .map((lang) => (
                   <TabsContent
                     key={lang}
@@ -321,7 +325,7 @@ export function SectionEditorDialog({
                   >
                     <div className="flex items-center justify-between mb-4">
                       <p className="text-sm text-muted-foreground">
-                        Translate to {SupportedLanguages[lang].name}
+                        {t("editor.fields.translateTo", { name: SupportedLanguages[lang].name })}
                       </p>
                       <div className="flex gap-2">
                         <Button
@@ -333,12 +337,12 @@ export function SectionEditorDialog({
                           {autoTranslatingSection === lang ? (
                             <>
                               <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                              Translating...
+                              {t("editor.translate.translating")}
                             </>
                           ) : (
                             <>
                               <Sparkles className="w-3 h-3 mr-1" />
-                              Auto-Translate
+                              {t("editor.fields.autoTranslate")}
                             </>
                           )}
                         </Button>
@@ -350,7 +354,7 @@ export function SectionEditorDialog({
                           {savingTranslation === lang ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
-                            "Save"
+                            t("editor.fields.save")
                           )}
                         </Button>
                       </div>
@@ -359,7 +363,7 @@ export function SectionEditorDialog({
                     {/* Title Translation */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label>Title</Label>
+                        <Label>{t("editor.fields.title")}</Label>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -368,7 +372,7 @@ export function SectionEditorDialog({
                           }
                         >
                           <Copy className="w-3 h-3 mr-1" />
-                          Copy English
+                          {t("editor.fields.copySource", { name: SupportedLanguages[sourceLanguage].name })}
                         </Button>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -386,7 +390,7 @@ export function SectionEditorDialog({
                               e.target.value
                             )
                           }
-                          placeholder={`${SupportedLanguages[lang].name} translation...`}
+                          placeholder={t("editor.fields.translationPlaceholder", { name: SupportedLanguages[lang].name })}
                           className="text-sm"
                         />
                       </div>
@@ -396,7 +400,7 @@ export function SectionEditorDialog({
                     {sectionDescription && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label>Description</Label>
+                          <Label>{t("editor.fields.description")}</Label>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -405,7 +409,7 @@ export function SectionEditorDialog({
                             }
                           >
                             <Copy className="w-3 h-3 mr-1" />
-                            Copy English
+                            {t("editor.fields.copySource", { name: SupportedLanguages[sourceLanguage].name })}
                           </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -424,7 +428,7 @@ export function SectionEditorDialog({
                                 e.target.value
                               )
                             }
-                            placeholder={`${SupportedLanguages[lang].name} translation...`}
+                            placeholder={t("editor.fields.translationPlaceholder", { name: SupportedLanguages[lang].name })}
                             rows={2}
                             className="text-sm"
                           />
@@ -442,7 +446,7 @@ export function SectionEditorDialog({
             Cancel
           </Button>
           <Button onClick={onSave} disabled={!canSave}>
-            {editingSection ? "Save Changes" : "Add Section"}
+            {editingSection ? t("editor.fields.saveChanges") : t("editor.fields.addSection")}
           </Button>
         </div>
       </DialogContent>

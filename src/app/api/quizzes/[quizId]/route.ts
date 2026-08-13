@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { isValidLanguageCode } from "@/lib/source-language";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
@@ -52,7 +53,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { quizId } = await params;
     const body = await request.json();
-    const { title, description } = body;
+    const { title, description, sourceLanguage } = body;
+
+    if (sourceLanguage !== undefined && !isValidLanguageCode(sourceLanguage)) {
+      return NextResponse.json(
+        { error: "Invalid source language" },
+        { status: 400 }
+      );
+    }
 
     const quiz = await prisma.quiz.update({
       where: { id: quizId },
@@ -61,6 +69,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ...(description !== undefined && {
           description: description?.trim() || null,
         }),
+        ...(sourceLanguage !== undefined && { sourceLanguage }),
       },
     });
 

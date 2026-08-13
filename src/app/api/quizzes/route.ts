@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { resolveSourceLanguage, isValidLanguageCode } from "@/lib/source-language";
 
 // GET /api/quizzes - List all quizzes (admin only)
 export async function GET(request: NextRequest) {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
-    const { title, description } = body;
+    const { title, description, sourceLanguage } = body;
 
     if (!title || typeof title !== "string" || title.trim() === "") {
       return NextResponse.json(
@@ -84,10 +85,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const resolvedSource = isValidLanguageCode(sourceLanguage)
+      ? sourceLanguage
+      : resolveSourceLanguage(sourceLanguage);
+
     const quiz = await prisma.quiz.create({
       data: {
         title: title.trim(),
         description: description?.trim() || null,
+        sourceLanguage: resolvedSource,
       },
     });
 

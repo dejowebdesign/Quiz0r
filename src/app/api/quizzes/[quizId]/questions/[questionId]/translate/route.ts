@@ -3,6 +3,7 @@ import { translateQuestion, translateSection } from "@/lib/openai-translate";
 import { SupportedLanguages, type LanguageCode } from "@/types";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { resolveSourceLanguage } from "@/lib/source-language";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,16 @@ export async function POST(
       );
     }
 
-    // Validate that target language is not English
-    if (targetLanguage === "en") {
+    // The target language must differ from the quiz's source (base) language.
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: (await params).quizId },
+      select: { sourceLanguage: true },
+    });
+    const sourceLanguage = resolveSourceLanguage(quiz?.sourceLanguage);
+
+    if (targetLanguage === sourceLanguage) {
       return NextResponse.json(
-        { error: "Cannot translate to English (base language)" },
+        { error: `Cannot translate to the quiz's source language (${SupportedLanguages[sourceLanguage].name})` },
         { status: 400 }
       );
     }

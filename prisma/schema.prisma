@@ -25,6 +25,11 @@ model Quiz {
   autoAdmit   Boolean       @default(true) // Auto-admit players by default
   aiGenerated Boolean       @default(false)
 
+  // Source language of the quiz content (ISO code, e.g. 'en', 'de', 'sr-Latn').
+  // Nullable for backward compatibility with quizzes created before this field
+  // existed; resolved lazily (defaults to 'en' as the historical base language).
+  sourceLanguage String?
+
   // Power-up Configuration (default: all disabled)
   hintCount          Int @default(0)
   copyAnswerCount    Int @default(0)

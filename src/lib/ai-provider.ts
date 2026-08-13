@@ -27,6 +27,8 @@ export interface QuizGenerationOptions {
   questionCount: number;
   sectionCount: number;
   additionalNotes?: string;
+  /** Language the generated quiz content should be authored in. */
+  sourceLanguage?: string;
 }
 
 /**

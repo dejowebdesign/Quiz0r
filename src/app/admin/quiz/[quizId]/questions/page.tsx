@@ -36,6 +36,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SupportedLanguages, type LanguageCode, type TranslationStatus } from "@/types";
+import { resolveSourceLanguage } from "@/lib/source-language";
+import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 
 // New components
@@ -75,6 +77,7 @@ interface Quiz {
   doublePointsCount: number;
   questions: Question[];
   aiGenerated?: boolean;
+  sourceLanguage?: string | null;
 }
 
 interface SectionGroup {
@@ -123,7 +126,11 @@ export default function QuestionsPage({
   params: Promise<{ quizId: string }>;
 }) {
   const { quizId } = use(params);
+  const { t } = useTranslation();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
+  // Effective source language of the quiz content. Falls back to the historical
+  // base language (English) when the quiz has no explicit sourceLanguage.
+  const sourceLanguage: LanguageCode = resolveSourceLanguage(quiz?.sourceLanguage);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
@@ -230,7 +237,7 @@ export default function QuestionsPage({
             if (question.questionType === "SECTION") {
               const langCodes = new Set<LanguageCode>();
               questionTranslations.forEach((t: { languageCode: string }) => {
-                if (t.languageCode !== "en") langCodes.add(t.languageCode as LanguageCode);
+                if (t.languageCode !== sourceLanguage) langCodes.add(t.languageCode as LanguageCode);
               });
 
               if (langCodes.size === 0) {
@@ -277,10 +284,10 @@ export default function QuestionsPage({
             // Get all unique language codes from translations
             const langCodes = new Set<LanguageCode>();
             questionTranslations.forEach((t: { languageCode: string }) => {
-              if (t.languageCode !== "en") langCodes.add(t.languageCode as LanguageCode);
+              if (t.languageCode !== sourceLanguage) langCodes.add(t.languageCode as LanguageCode);
             });
             answerTranslations.forEach((t: { languageCode: string }) => {
-              if (t.languageCode !== "en") langCodes.add(t.languageCode as LanguageCode);
+              if (t.languageCode !== sourceLanguage) langCodes.add(t.languageCode as LanguageCode);
             });
 
             if (langCodes.size === 0) {
@@ -369,7 +376,7 @@ export default function QuestionsPage({
         setQuizTitleInput(trimmedTitle);
         setQuizDescriptionInput(trimmedDescription);
         setEditQuizDetailsOpen(false);
-        toast.success("Quiz details updated");
+        toast.success(t("editor.quizDetailsUpdated"));
       } else {
         const data = await res.json().catch(() => null);
         setQuizDetailsError(data?.error || "Failed to update quiz");
@@ -408,7 +415,7 @@ export default function QuestionsPage({
       window.URL.revokeObjectURL(url);
 
       toast.success("Quiz exported", {
-        description: "Your quiz and assets have been downloaded.",
+        description: t("editor.exportDownloaded"),
       });
     } catch (error) {
       console.error("Export error:", error);
@@ -439,8 +446,8 @@ export default function QuestionsPage({
     setEditingQuestion(null);
     setQuestionTranslations({} as Record<LanguageCode, any>);
     setAnswerTranslations({});
-    setActiveTranslationTab("en");
-    setAvailableTranslationLanguages(["en"]);
+    setActiveTranslationTab(sourceLanguage);
+    setAvailableTranslationLanguages([sourceLanguage]);
   }
 
   async function fetchTranslationStatus() {
@@ -489,14 +496,14 @@ export default function QuestionsPage({
       } else {
         setTranslationResult({
           success: false,
-          error: data.error || "Translation failed",
+          error: data.error || t("editor.translationFailed"),
         });
       }
     } catch (error) {
       console.error("Translation error:", error);
       setTranslationResult({
         success: false,
-        error: "Failed to translate quiz. Please try again.",
+        error: t("editor.failedToTranslateQuiz"),
       });
     }
   }
@@ -547,7 +554,7 @@ export default function QuestionsPage({
 
   async function saveTranslationForLanguage(lang: LanguageCode) {
     if (!editingQuestion?.id) {
-      toast.error("Save the question before editing translations.");
+      toast.error(t("editor.saveBeforeTranslations"));
       return;
     }
 
@@ -586,11 +593,11 @@ export default function QuestionsPage({
         await loadQuestionTranslations(editingQuestion.id);
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to save translation");
+        toast.error(data.error || t("editor.failedToSaveTranslation"));
       }
     } catch (error) {
       console.error("Failed to save translation:", error);
-      toast.error("Failed to save translation");
+      toast.error(t("editor.failedToSaveTranslation"));
     } finally {
       setSavingTranslation((current) => (current === lang ? null : current));
     }
@@ -605,7 +612,7 @@ export default function QuestionsPage({
           setQuestionTranslations(data.translations.questionTranslations || {});
           setAnswerTranslations(data.translations.answerTranslations || {});
 
-          const langs = new Set<LanguageCode>(["en"]);
+          const langs = new Set<LanguageCode>([sourceLanguage]);
           Object.keys(data.translations.questionTranslations || {}).forEach((lang) => {
             langs.add(lang as LanguageCode);
           });
@@ -704,11 +711,11 @@ export default function QuestionsPage({
         setActiveTranslationTab(lang);
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to auto-translate question");
+        toast.error(data.error || t("editor.failedToAutoTranslateQuestion"));
       }
     } catch (error) {
       console.error("Failed to auto-translate:", error);
-      toast.error("Failed to auto-translate question");
+      toast.error(t("editor.failedToAutoTranslateQuestion"));
     } finally {
       setAutoTranslatingQuestion(null);
     }
@@ -738,8 +745,8 @@ export default function QuestionsPage({
 
     setQuestionTranslations({} as Record<LanguageCode, any>);
     setAnswerTranslations({});
-    setActiveTranslationTab("en");
-    setAvailableTranslationLanguages(["en"]);
+    setActiveTranslationTab(sourceLanguage);
+    setAvailableTranslationLanguages([sourceLanguage]);
 
     if (question.id) {
       loadQuestionTranslations(question.id);
@@ -796,11 +803,11 @@ export default function QuestionsPage({
         fetchQuiz();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to save section");
+        toast.error(data.error || t("editor.failedToSaveSection"));
       }
     } catch (error) {
       console.error("Failed to save section:", error);
-      toast.error("Failed to save section");
+      toast.error(t("editor.failedToSaveSection"));
     }
   }
 
@@ -823,11 +830,11 @@ export default function QuestionsPage({
         setImageUrl(data.url);
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to upload image");
+        toast.error(data.error || t("editor.failedToUploadImage"));
       }
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload image");
+      toast.error(t("editor.failedToUploadImage"));
     } finally {
       setUploading(false);
     }
@@ -851,7 +858,7 @@ export default function QuestionsPage({
     }
 
     if (!validAnswers.some((a) => a.isCorrect)) {
-      toast.error("At least one answer must be marked as correct");
+      toast.error(t("editor.atLeastOneCorrect"));
       return;
     }
 
@@ -861,7 +868,7 @@ export default function QuestionsPage({
         return;
       }
       if (!easterEggUrl.trim() || !easterEggUrl.match(/^https?:\/\/.+/)) {
-        toast.error("Easter egg URL must be a valid HTTP/HTTPS URL");
+        toast.error(t("editor.easterEggInvalidUrl"));
         return;
       }
     }
@@ -908,11 +915,11 @@ export default function QuestionsPage({
         fetchQuiz();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to save question");
+        toast.error(data.error || t("editor.failedToSaveQuestion"));
       }
     } catch (error) {
       console.error("Failed to save question:", error);
-      toast.error("Failed to save question");
+      toast.error(t("editor.failedToSaveQuestion"));
     }
   }
 
@@ -963,15 +970,15 @@ export default function QuestionsPage({
         method: "DELETE",
       });
       if (res.ok) {
-        toast.success("Question deleted");
+        toast.success(t("editor.questionDeleted"));
         fetchQuiz();
       } else {
         const data = await res.json().catch(() => null);
-        toast.error(data?.error || "Failed to delete question");
+        toast.error(data?.error || t("editor.failedToDeleteQuestion"));
       }
     } catch (error) {
       console.error("Failed to delete question:", error);
-      toast.error("Failed to delete question");
+      toast.error(t("editor.failedToDeleteQuestion"));
     } finally {
       setDeletingQuestion(false);
       setQuestionToDelete(null);
@@ -1009,11 +1016,11 @@ export default function QuestionsPage({
         fetchQuiz();
       } else {
         const data = await res.json();
-        toast.error(data.error || "Failed to duplicate question");
+        toast.error(data.error || t("editor.failedToDuplicateQuestion"));
       }
     } catch (error) {
       console.error("Failed to duplicate question:", error);
-      toast.error("Failed to duplicate question");
+      toast.error(t("editor.failedToDuplicateQuestion"));
     }
   }
 
@@ -1114,12 +1121,12 @@ export default function QuestionsPage({
   if (!quiz) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h2 className="text-2xl font-bold mb-2">Quiz not found</h2>
+        <h2 className="text-2xl font-bold mb-2">{t("editor.quizNotFound")}</h2>
         <p className="text-muted-foreground mb-4">
-          The quiz you&apos;re looking for doesn&apos;t exist or has been deleted.
+          {t("editor.quizNotFoundDesc")}
         </p>
         <Link href="/admin">
-          <Button>Back to Quizzes</Button>
+          <Button>{t("editor.backToQuizzes")}</Button>
         </Link>
       </div>
     );
@@ -1165,15 +1172,13 @@ export default function QuestionsPage({
       <AlertDialog open={!!questionToDelete} onOpenChange={(open) => !open && setQuestionToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this question?</AlertDialogTitle>
+            <AlertDialogTitle>{t("editor.deleteQuestionTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove{" "}
-              <strong>{questionToDelete?.questionText || "this question"}</strong>{" "}
-              from the quiz.
+              {t("editor.deleteQuestionDesc", { name: questionToDelete?.questionText || t("editor.thisQuestion") })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletingQuestion}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deletingQuestion}>{t("editor.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={deleteQuestion}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -1182,10 +1187,10 @@ export default function QuestionsPage({
               {deletingQuestion ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
+                  {t("editor.deleting")}
                 </>
               ) : (
-                "Delete Question"
+                t("editor.deleteQuestion")
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1216,9 +1221,9 @@ export default function QuestionsPage({
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit quiz details</DialogTitle>
+            <DialogTitle>{t("editor.editQuizDetails")}</DialogTitle>
             <DialogDescription>
-              Update the title and description shown to hosts and players.
+              {t("editor.editQuizDetailsDesc")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1230,23 +1235,23 @@ export default function QuestionsPage({
             }}
           >
             <div className="space-y-2">
-              <Label htmlFor="quiz-title">Title</Label>
+              <Label htmlFor="quiz-title">{t("editor.title")}</Label>
               <Input
                 id="quiz-title"
                 value={quizTitleInput}
                 onChange={(e) => setQuizTitleInput(e.target.value)}
-                placeholder="Enter quiz title"
+                placeholder={t("editor.titlePlaceholder")}
                 disabled={savingQuizDetails}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="quiz-description">Description (optional)</Label>
+              <Label htmlFor="quiz-description">{t("editor.descriptionOptional")}</Label>
               <Textarea
                 id="quiz-description"
                 value={quizDescriptionInput}
                 onChange={(e) => setQuizDescriptionInput(e.target.value)}
-                placeholder="What is this quiz about?"
+                placeholder={t("editor.descriptionPlaceholder")}
                 disabled={savingQuizDetails}
                 rows={3}
               />
@@ -1263,16 +1268,16 @@ export default function QuestionsPage({
                 onClick={() => setEditQuizDetailsOpen(false)}
                 disabled={savingQuizDetails}
               >
-                Cancel
+                {t("editor.cancel")}
               </Button>
               <Button type="submit" disabled={savingQuizDetails}>
                 {savingQuizDetails ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {t("editor.saving")}
                   </>
                 ) : (
-                  "Save changes"
+                  t("editor.saveChanges")
                 )}
               </Button>
             </div>
@@ -1316,6 +1321,7 @@ export default function QuestionsPage({
         availableTranslationLanguages={availableTranslationLanguages}
         activeTranslationTab={activeTranslationTab}
         setActiveTranslationTab={setActiveTranslationTab}
+        sourceLanguage={sourceLanguage}
         questionTranslations={questionTranslations}
         answerTranslations={answerTranslations}
         onAddTranslationLanguage={addTranslationLanguage}
@@ -1355,6 +1361,7 @@ export default function QuestionsPage({
         availableTranslationLanguages={availableTranslationLanguages}
         activeTranslationTab={activeTranslationTab}
         setActiveTranslationTab={setActiveTranslationTab}
+        sourceLanguage={sourceLanguage}
         sectionTranslations={questionTranslations}
         onAddTranslationLanguage={addTranslationLanguage}
         onUpdateSectionTranslation={updateQuestionTranslation}
@@ -1395,7 +1402,7 @@ export default function QuestionsPage({
             ) : (
               <div className="grid gap-3">
                 {(Object.keys(SupportedLanguages) as LanguageCode[])
-                  .filter((code) => code !== "en")
+                  .filter((code) => code !== sourceLanguage)
                   .map((languageCode) => {
                     const languageInfo = SupportedLanguages[languageCode];
                     const status = translationStatuses.find((s) => s.languageCode === languageCode);
@@ -1442,12 +1449,12 @@ export default function QuestionsPage({
                                 {isTranslating ? (
                                   <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Translating...
+                                    {t("editor.translate.translating")}
                                   </>
                                 ) : (status?.translatedFields ?? 0) > 0 ? (
-                                  "Re-translate"
+                                  t("editor.translate.retranslate")
                                 ) : (
-                                  "Translate"
+                                  t("editor.translate.translate")
                                 )}
                               </Button>
                               {(status?.translatedFields ?? 0) > 0 && (
@@ -1455,7 +1462,7 @@ export default function QuestionsPage({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDeleteLanguage(languageCode)}
-                                  title="Delete translation"
+                                  title={t("editor.translate.deleteTranslation")}
                                 >
                                   <Trash2 className="w-4 h-4 text-destructive" />
                                 </Button>
@@ -1471,9 +1478,9 @@ export default function QuestionsPage({
 
             <div className="border-t pt-4 mt-4">
               <p className="text-sm text-muted-foreground">
-                <strong>Note:</strong> Translations use your configured AI provider. Make sure you have configured a provider and API key in{" "}
+                <strong>{t("editor.note")}</strong> {t("editor.translationsNote")}{" "}
                 <Link href="/admin/settings" className="text-primary hover:underline">
-                  Settings
+                  {t("editor.settings")}
                 </Link>
                 .
               </p>
@@ -1488,12 +1495,12 @@ export default function QuestionsPage({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
-              Translate Quiz
+              {t("editor.translate.translateQuiz")}
             </DialogTitle>
             <DialogDescription>
               {confirmTranslateLanguage && (
                 <>
-                  Translate all questions to{" "}
+                  {t("editor.translate.translateAllTo")}{" "}
                   <strong>
                     {SupportedLanguages[confirmTranslateLanguage].flag}{" "}
                     {SupportedLanguages[confirmTranslateLanguage].name}
@@ -1507,11 +1514,11 @@ export default function QuestionsPage({
             <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
               <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-foreground">This action will:</p>
+                <p className="font-medium text-foreground">{t("editor.translate.thisActionWill")}</p>
                 <ul className="mt-1 text-muted-foreground space-y-1">
-                  <li>• Take a few minutes to complete</li>
-                  <li>• Use OpenAI API credits</li>
-                  <li>• Overwrite any existing translations for this language</li>
+                  <li>{t("editor.translate.actionTakeMinutes")}</li>
+                  <li>{t("editor.translate.actionUseCredits")}</li>
+                  <li>{t("editor.translate.actionOverwrite")}</li>
                 </ul>
               </div>
             </div>
@@ -1519,11 +1526,11 @@ export default function QuestionsPage({
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setConfirmTranslateLanguage(null)}>
-              Cancel
+              {t("editor.cancel")}
             </Button>
             <Button onClick={executeTranslateQuiz}>
               <Sparkles className="w-4 h-4 mr-2" />
-              Start Translation
+              {t("editor.translate.startTranslation")}
             </Button>
           </div>
         </DialogContent>
@@ -1537,17 +1544,17 @@ export default function QuestionsPage({
               {!translationResult ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  Translating...
+                  {t("editor.translate.translating")}
                 </>
               ) : translationResult.success ? (
                 <>
                   <Check className="w-5 h-5 text-green-500" />
-                  Translation Complete
+                  {t("editor.translate.translationComplete")}
                 </>
               ) : (
                 <>
                   <AlertCircle className="w-5 h-5 text-destructive" />
-                  Translation Failed
+                  {t("editor.translate.translationFailed")}
                 </>
               )}
             </DialogTitle>
@@ -1570,7 +1577,7 @@ export default function QuestionsPage({
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground text-center">
-                  Translating questions using AI...
+                  {t("editor.translate.translatingWithAi")}
                 </p>
               </div>
             ) : translationResult.success ? (
@@ -1583,14 +1590,14 @@ export default function QuestionsPage({
                 <div className="text-center space-y-1">
                   {(translationResult.translated ?? 0) > 0 ? (
                     <p className="text-lg font-medium">
-                      {translationResult.translated} question{translationResult.translated !== 1 ? "s" : ""} translated
+                      {t("editor.translate.questionsTranslated", { count: translationResult.translated ?? 0 })}
                     </p>
                   ) : (
-                    <p className="text-lg font-medium">Translation complete</p>
+                    <p className="text-lg font-medium">{t("editor.translate.translationCompleteShort")}</p>
                   )}
                   {(translationResult.failed ?? 0) > 0 && (
                     <p className="text-sm text-amber-600 dark:text-amber-400">
-                      {translationResult.failed} question{translationResult.failed !== 1 ? "s" : ""} failed
+                      {t("editor.translate.questionsFailed", { count: translationResult.failed ?? 0 })}
                     </p>
                   )}
                 </div>
@@ -1611,7 +1618,7 @@ export default function QuestionsPage({
 
           {translationResult && (
             <div className="flex justify-end">
-              <Button onClick={closeTranslationProgress}>Done</Button>
+              <Button onClick={closeTranslationProgress}>{t("editor.translate.done")}</Button>
             </div>
           )}
         </DialogContent>
@@ -1623,12 +1630,12 @@ export default function QuestionsPage({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-destructive" />
-              Delete Translation
+              {t("editor.translate.deleteTranslation")}
             </DialogTitle>
             <DialogDescription>
               {confirmDeleteLanguage && (
                 <>
-                  Delete all translations for{" "}
+                  {t("editor.translate.deleteAllFor")}{" "}
                   <strong>
                     {SupportedLanguages[confirmDeleteLanguage].flag}{" "}
                     {SupportedLanguages[confirmDeleteLanguage].name}
@@ -1642,9 +1649,9 @@ export default function QuestionsPage({
             <div className="flex items-start gap-3 p-3 bg-destructive/10 rounded-lg">
               <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-foreground">This action cannot be undone.</p>
+                <p className="font-medium text-foreground">{t("editor.translate.actionCannotUndo")}</p>
                 <p className="mt-1 text-muted-foreground">
-                  All translated content for this language will be permanently deleted.
+                  {t("editor.translate.deleteAllContent")}
                 </p>
               </div>
             </div>
@@ -1652,11 +1659,11 @@ export default function QuestionsPage({
 
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setConfirmDeleteLanguage(null)}>
-              Cancel
+              {t("editor.cancel")}
             </Button>
             <Button variant="destructive" onClick={executeDeleteLanguage}>
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete Translation
+              {t("editor.translate.deleteTranslation")}
             </Button>
           </div>
         </DialogContent>
@@ -1670,17 +1677,17 @@ export default function QuestionsPage({
               {!deleteResult ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin text-destructive" />
-                  Deleting...
+                  {t("editor.translate.deleting")}
                 </>
               ) : deleteResult.success ? (
                 <>
                   <Check className="w-5 h-5 text-green-500" />
-                  Translation Deleted
+                  {t("editor.translate.translationDeleted")}
                 </>
               ) : (
                 <>
                   <AlertCircle className="w-5 h-5 text-destructive" />
-                  Delete Failed
+                  {t("editor.translate.deleteFailed")}
                 </>
               )}
             </DialogTitle>
@@ -1705,7 +1712,7 @@ export default function QuestionsPage({
                   </div>
                 </div>
                 <p className="text-center text-muted-foreground">
-                  Translation has been successfully deleted.
+                  {t("editor.translate.translationDeletedMsg")}
                 </p>
               </div>
             ) : (
@@ -1724,7 +1731,7 @@ export default function QuestionsPage({
 
           {deleteResult && (
             <div className="flex justify-end">
-              <Button onClick={closeDeleteProgress}>Done</Button>
+              <Button onClick={closeDeleteProgress}>{t("editor.translate.done")}</Button>
             </div>
           )}
         </DialogContent>

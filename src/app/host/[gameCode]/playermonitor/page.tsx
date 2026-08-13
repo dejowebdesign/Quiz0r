@@ -19,6 +19,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const ITEMS_PER_PAGE = 9;
 
@@ -28,6 +29,7 @@ export default function PlayerMonitorPage({
   params: Promise<{ gameCode: string }>;
 }) {
   const { gameCode } = use(params);
+  const { t } = useTranslation();
   const { connected, playerViews, requestPlayerViews } = useSocket({
     gameCode,
     role: "host",
@@ -51,7 +53,7 @@ export default function PlayerMonitorPage({
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex items-center gap-3 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin" />
-          <span>Connecting to player monitor...</span>
+          <span>{t("host.connectingToMonitor")}</span>
         </div>
       </div>
     );
@@ -66,8 +68,8 @@ export default function PlayerMonitorPage({
               <Eye className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Game #{gameCode.toUpperCase()}</p>
-              <h1 className="text-xl font-semibold">Player Monitor</h1>
+              <p className="text-sm text-muted-foreground">{t("host.gameCodeLabel", { code: gameCode.toUpperCase() })}</p>
+              <h1 className="text-xl font-semibold">{t("host.playerMonitor")}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -108,11 +110,11 @@ export default function PlayerMonitorPage({
           <div className="relative w-full max-w-6xl">
             <div className="absolute -top-10 right-0 flex items-center gap-2 text-sm text-white/80">
               <Badge variant="secondary" className="bg-white/90 text-black">
-                {stageLabel(expanded.stage)}
+                {stageLabel(expanded.stage, t)}
               </Badge>
               <Button variant="secondary" size="sm" onClick={() => setExpanded(null)} className="gap-2">
                 <X className="w-4 h-4" />
-                Close
+                {t("common.close")}
               </Button>
             </div>
             <div className="relative aspect-[16/9] bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10">
@@ -124,11 +126,11 @@ export default function PlayerMonitorPage({
                 />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center text-white/70">
-                  {emptyMessageForStage(expanded.stage)}
+                  {emptyMessageForStage(expanded.stage, t)}
                 </div>
               )}
               <div className="absolute left-4 bottom-4 bg-black/55 backdrop-blur px-3 py-2 rounded-lg text-white">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/60">Player</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/60">{t("host.player")}</p>
                 <p className="text-lg font-semibold">{expanded.playerName}</p>
               </div>
             </div>
@@ -140,6 +142,7 @@ export default function PlayerMonitorPage({
 }
 
 function PlayerPreview({ view, onExpand }: { view: PlayerViewState; onExpand: () => void }) {
+  const { t } = useTranslation();
   const stage = view.stage;
 
   return (
@@ -164,13 +167,13 @@ function PlayerPreview({ view, onExpand }: { view: PlayerViewState; onExpand: ()
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-            {emptyMessageForStage(stage)}
+            {emptyMessageForStage(stage, t)}
           </div>
         )}
         <div className="absolute inset-0 pointer-events-none" />
         <div className="absolute inset-x-0 bottom-0 p-3 flex items-center justify-between bg-gradient-to-t from-black/60 via-black/20 to-transparent">
           <div className="bg-black/50 backdrop-blur px-3 py-1.5 rounded-lg">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">Player</p>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">{t("host.player")}</p>
             <p className="text-sm font-semibold text-white">{view.playerName}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -181,7 +184,7 @@ function PlayerPreview({ view, onExpand }: { view: PlayerViewState; onExpand: ()
               </div>
             )}
             <Badge variant="secondary" className="uppercase tracking-wide text-[11px] bg-white/90 text-black">
-              {stageLabel(stage)}
+              {stageLabel(stage, t)}
             </Badge>
             <div className="rounded-full bg-black/50 p-2 text-white">
               <Maximize2 className="w-4 h-4" />
@@ -190,12 +193,12 @@ function PlayerPreview({ view, onExpand }: { view: PlayerViewState; onExpand: ()
         </div>
       </div>
       <div className="border-t px-4 py-3 flex items-center justify-between text-xs text-muted-foreground bg-muted/40">
-        <span>Status: {view.isActive === false ? "Inactive" : "Active"}</span>
+        <span>{t("host.status")} {view.isActive === false ? t("host.inactive") : t("host.active")}</span>
         {view.answerResult && (
           <span className="inline-flex items-center gap-1">
-            {view.answerResult.correct ? "Answered" : "Missed"}
+            {view.answerResult.correct ? t("host.answered") : t("host.missed")}
             <span className="font-semibold text-foreground">
-              +{view.answerResult.points} pts
+              +{view.answerResult.points} {t("host.pts")}
             </span>
           </span>
         )}
@@ -204,50 +207,50 @@ function PlayerPreview({ view, onExpand }: { view: PlayerViewState; onExpand: ()
   );
 }
 
-function stageLabel(stage: PlayerViewState["stage"]) {
+function stageLabel(stage: PlayerViewState["stage"], t: (k: string) => string) {
   switch (stage) {
     case "waiting":
-      return "Lobby";
+      return t("host.stageLobby");
     case "section":
-      return "Section";
+      return t("host.stageSection");
     case "question":
-      return "Question";
+      return t("host.stageQuestion");
     case "awaiting-reveal":
-      return "Awaiting Reveal";
+      return t("host.stageAwaitingReveal");
     case "reveal":
-      return "Reveal";
+      return t("host.stageReveal");
     case "scoreboard":
-      return "Scoreboard";
+      return t("host.stageScoreboard");
     case "finished":
-      return "Finished";
+      return t("host.stageFinished");
     case "cancelled":
-      return "Cancelled";
+      return t("host.stageCancelled");
     case "removed":
-      return "Removed";
+      return t("host.stageRemoved");
     default:
-      return "Connecting";
+      return t("host.stageConnecting");
   }
 }
 
-function emptyMessageForStage(stage: PlayerViewState["stage"]) {
+function emptyMessageForStage(stage: PlayerViewState["stage"], t: (k: string) => string) {
   switch (stage) {
     case "waiting":
-      return "In lobby";
+      return t("host.emptyLobby");
     case "section":
-      return "Viewing section slide";
+      return t("host.emptySection");
     case "awaiting-reveal":
-      return "Waiting for reveal";
+      return t("host.emptyAwaitingReveal");
     case "reveal":
-      return "Reviewing answers";
+      return t("host.emptyReveal");
     case "scoreboard":
-      return "Viewing scoreboard";
+      return t("host.emptyScoreboard");
     case "finished":
-      return "Game finished";
+      return t("host.emptyFinished");
     case "cancelled":
-      return "Game cancelled";
+      return t("host.emptyCancelled");
     case "removed":
-      return "Removed by host";
+      return t("host.emptyRemoved");
     default:
-      return "Waiting for state";
+      return t("host.emptyWaiting");
   }
 }
