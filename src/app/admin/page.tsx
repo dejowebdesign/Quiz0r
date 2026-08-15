@@ -373,9 +373,9 @@ export default function AdminDashboard() {
           if (!open) resetAiDialog();
         }}
       >
-        <DialogContent className="sm:max-w-[720px]">
-          <form onSubmit={handleAiSubmit} className="space-y-6">
-            <DialogHeader className="space-y-2">
+        <DialogContent className="sm:max-w-[720px] max-h-[calc(100vh-2rem)] flex flex-col overflow-hidden p-0">
+          <form onSubmit={handleAiSubmit} className="flex flex-col flex-1 overflow-hidden">
+            <DialogHeader className="space-y-2 p-6 pb-4 shrink-0">
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
                 {t("admin.createQuizUsingAi")}
@@ -393,7 +393,7 @@ export default function AdminDashboard() {
             </DialogDescription>
           </DialogHeader>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 overflow-y-auto px-6 pb-6 flex-1">
               <div className="sm:col-span-2 space-y-2">
                 <Label htmlFor="aiTopic">{t("admin.topicOrTheme")}</Label>
                 <Input
@@ -456,9 +456,9 @@ export default function AdminDashboard() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="sm:col-span-2 space-y-2">
                 <Label>{t("admin.questionTypes")}</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                   {([
                     { value: "MULTIPLE_CHOICE", key: "admin.questionTypeMultipleChoice" },
                     { value: "TRUE_FALSE", key: "admin.questionTypeTrueFalse" },
@@ -469,7 +469,7 @@ export default function AdminDashboard() {
                     return (
                       <label
                         key={opt.value}
-                        className="flex items-center gap-2 rounded-md border p-2 text-sm cursor-pointer has-[:disabled]:cursor-not-allowed"
+                        className="flex items-center gap-2 rounded-md border p-2 text-sm cursor-pointer has-[:disabled]:cursor-not-allowed break-words min-w-0"
                       >
                         <Checkbox
                           checked={checked}
@@ -481,7 +481,7 @@ export default function AdminDashboard() {
                             setAiQuestionTypes(Array.from(next));
                           }}
                         />
-                        {t(opt.key)}
+                        <span className="min-w-0">{t(opt.key)}</span>
                       </label>
                     );
                   })}
@@ -533,6 +533,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            <div className="shrink-0 border-t bg-background px-6 py-4 space-y-3">
             {(aiStatus || aiCreating || aiCreatedQuizId) && (
               <div className="space-y-3">
                 <div className="rounded-lg border bg-muted/40 p-4 space-y-3">
@@ -628,6 +629,7 @@ export default function AdminDashboard() {
                 </div>
               </DialogFooter>
             )}
+            </div>
           </form>
         </DialogContent>
       </Dialog>
