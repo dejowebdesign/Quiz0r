@@ -1,9 +1,13 @@
 import { QuizTheme } from "./theme";
+import type { CategoriseData, MatchingData } from "@/lib/question-types";
 
 // Question types
 export const QuestionType = {
   SINGLE_SELECT: "SINGLE_SELECT",
   MULTI_SELECT: "MULTI_SELECT",
+  TRUE_FALSE: "TRUE_FALSE",
+  CATEGORISE: "CATEGORISE",
+  MATCHING: "MATCHING",
   SECTION: "SECTION",
 } as const;
 
@@ -100,6 +104,9 @@ export interface QuestionData {
   easterEggButtonText?: string | null;
   easterEggUrl?: string | null;
   easterEggDisablesScoring?: boolean;
+  // Structured content for the extended question types (null otherwise).
+  categoriseData?: CategoriseData | null;
+  matchingData?: MatchingData | null;
 }
 
 export interface AnswerOption {
@@ -120,6 +127,9 @@ export interface QuestionDataWithTranslations extends QuestionData {
     hostNotes?: string | null;
     hint?: string | null;
     easterEggButtonText?: string | null;
+    // Translated structured content for CATEGORISE/MATCHING (label-only mirrors).
+    categoriseData?: CategoriseData | null;
+    matchingData?: MatchingData | null;
   }>;
   answers: AnswerOptionWithTranslations[];
 }
@@ -150,6 +160,20 @@ export interface PlayerScore {
 export interface AnswerStats {
   totalAnswered: number;
   answerDistribution: Record<string, number>;
+  // Per-item correctness counts for CATEGORISE reveal.
+  categorise?: {
+    itemId: string;
+    categoryId: string;
+    correctCount: number;
+    total: number;
+  }[];
+  // Per-pair correctness counts for MATCHING reveal.
+  matching?: {
+    leftId: string;
+    rightId: string;
+    correctCount: number;
+    total: number;
+  }[];
 }
 
 export interface PlayerAnswerDetail {
@@ -222,6 +246,8 @@ export interface PlayerViewState {
     points?: number;
     questionNumber?: number;
     totalQuestions?: number;
+    categoriseData?: CategoriseData | null;
+    matchingData?: MatchingData | null;
   };
   selectedAnswerIds?: string[];
   hasSubmitted?: boolean;
@@ -264,6 +290,10 @@ export interface ServerToClientEvents {
   "game:questionEnd": (data: {
     correctAnswerIds: string[];
     stats: AnswerStats;
+    // Structured correct answer maps for the extended types (only present for
+    // the matching question type). itemId -> correct categoryId; leftId -> correct rightId.
+    correctCategorise?: Record<string, string>;
+    correctMatching?: Record<string, string>;
   }) => void;
   "game:scoreUpdate": (data: { scores: PlayerScore[] }) => void;
   "game:showScoreboard": (data: {

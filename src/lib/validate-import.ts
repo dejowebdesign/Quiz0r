@@ -5,6 +5,12 @@
 
 import { SupportedLanguages } from "@/types";
 import { ExportedQuiz } from "@/types/export";
+import {
+  validateCategoriseData,
+  validateMatchingData,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 export interface ValidationResult {
   valid: boolean;
@@ -21,7 +27,7 @@ export function validateQuizStructure(data: unknown): ValidationResult {
 
   // Version metadata
   const version = quiz.exportVersion ?? "1.0";
-  if (version !== "1.0" && version !== "1.1") {
+  if (version !== "1.0" && version !== "1.1" && version !== "1.2") {
     return { valid: false, error: `Unsupported export version: ${version}` };
   }
 
@@ -156,9 +162,9 @@ function validateQuestion(q: unknown, index: number): ValidationResult {
   }
 
   // Question type
-  const validTypes = ["SINGLE_SELECT", "MULTI_SELECT", "SECTION"];
+  const validTypes = ["SINGLE_SELECT", "MULTI_SELECT", "TRUE_FALSE", "CATEGORISE", "MATCHING", "SECTION"];
   if (!validTypes.includes(question.questionType)) {
-    return { valid: false, error: `Question ${index + 1}: invalid question type (must be SINGLE_SELECT, MULTI_SELECT, or SECTION)` };
+    return { valid: false, error: `Question ${index + 1}: invalid question type (must be SINGLE_SELECT, MULTI_SELECT, TRUE_FALSE, CATEGORISE, MATCHING, or SECTION)` };
   }
 
   // Time limit
@@ -230,20 +236,61 @@ function validateQuestion(q: unknown, index: number): ValidationResult {
     return { valid: false, error: `Question ${index + 1}: answers must be an array` };
   }
 
-  // Sections don't need answers, but regular questions do
-  if (question.questionType !== "SECTION") {
-    if (question.answers.length < 2) {
-      return { valid: false, error: `Question ${index + 1}: must have at least 2 answers` };
-    }
+  const isAnswerType =
+    question.questionType === "SINGLE_SELECT" ||
+    question.questionType === "MULTI_SELECT" ||
+    question.questionType === "TRUE_FALSE";
+  const isStructuredType =
+    question.questionType === "CATEGORISE" || question.questionType === "MATCHING";
 
-    if (question.answers.length > 6) {
-      return { valid: false, error: `Question ${index + 1}: too many answers (max 6)` };
+  // Structured-content validation for the extended types.
+  if (question.questionType === "CATEGORISE") {
+    if (!question.categoriseData || typeof question.categoriseData !== "object") {
+      return { valid: false, error: `Question ${index + 1}: CATEGORISE requires categoriseData` };
     }
+    const result = validateCategoriseData(question.categoriseData as CategoriseData);
+    if (!result.valid) {
+      return { valid: false, error: `Question ${index + 1}: ${result.error}` };
+    }
+    if (question.answers.length > 0) {
+      return { valid: false, error: `Question ${index + 1}: CATEGORISE questions should not have answers` };
+    }
+  } else if (question.questionType === "MATCHING") {
+    if (!question.matchingData || typeof question.matchingData !== "object") {
+      return { valid: false, error: `Question ${index + 1}: MATCHING requires matchingData` };
+    }
+    const result = validateMatchingData(question.matchingData as MatchingData);
+    if (!result.valid) {
+      return { valid: false, error: `Question ${index + 1}: ${result.error}` };
+    }
+    if (question.answers.length > 0) {
+      return { valid: false, error: `Question ${index + 1}: MATCHING questions should not have answers` };
+    }
+  }
 
-    // Check at least one correct answer
-    const hasCorrect = question.answers.some((a: any) => a.isCorrect === true);
-    if (!hasCorrect) {
-      return { valid: false, error: `Question ${index + 1}: must have at least one correct answer` };
+  // Answer-option questions (SINGLE/MULTI/TRUE_FALSE) require answers; sections
+  // and structured types do not.
+  if (isAnswerType) {
+    // TRUE/FALSE has its own exact-count rule that supersedes the generic minimum.
+    if (question.questionType === "TRUE_FALSE") {
+      const correctCount = question.answers.filter((a: any) => a.isCorrect === true).length;
+      if (question.answers.length !== 2 || correctCount !== 1) {
+        return { valid: false, error: `Question ${index + 1}: TRUE_FALSE must have exactly 2 answers with one correct` };
+      }
+    } else {
+      if (question.answers.length < 2) {
+        return { valid: false, error: `Question ${index + 1}: must have at least 2 answers` };
+      }
+
+      if (question.answers.length > 6) {
+        return { valid: false, error: `Question ${index + 1}: too many answers (max 6)` };
+      }
+
+      // Check at least one correct answer
+      const hasCorrect = question.answers.some((a: any) => a.isCorrect === true);
+      if (!hasCorrect) {
+        return { valid: false, error: `Question ${index + 1}: must have at least one correct answer` };
+      }
     }
 
     // Validate each answer
@@ -287,10 +334,35 @@ function validateQuestion(q: unknown, index: number): ValidationResult {
         }
       }
     }
-  } else {
+  } else if (question.questionType === "SECTION") {
     // Sections should have zero answers
     if (question.answers.length > 0) {
       return { valid: false, error: `Question ${index + 1}: SECTION questions should not have answers` };
+    }
+  }
+
+  // Validate structured-content translations (contentTranslations) for the
+  // extended types: each entry is { languageCode, contentData (JSON string) }.
+  if (isStructuredType && question.contentTranslations !== undefined) {
+    if (!Array.isArray(question.contentTranslations)) {
+      return { valid: false, error: `Question ${index + 1}: contentTranslations must be an array` };
+    }
+    for (let j = 0; j < question.contentTranslations.length; j++) {
+      const ct = question.contentTranslations[j];
+      if (!ct || typeof ct !== "object") {
+        return { valid: false, error: `Question ${index + 1}, contentTranslation ${j + 1}: invalid` };
+      }
+      if (!ct.languageCode || typeof ct.languageCode !== "string") {
+        return { valid: false, error: `Question ${index + 1}, contentTranslation ${j + 1}: languageCode is required` };
+      }
+      if (typeof ct.contentData !== "string") {
+        return { valid: false, error: `Question ${index + 1}, contentTranslation ${j + 1}: contentData must be a JSON string` };
+      }
+      try {
+        JSON.parse(ct.contentData);
+      } catch {
+        return { valid: false, error: `Question ${index + 1}, contentTranslation ${j + 1}: contentData is not valid JSON` };
+      }
     }
   }
 

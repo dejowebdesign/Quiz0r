@@ -44,7 +44,7 @@ model Quiz {
 }
 
 // Individual question within a quiz
-// questionType: "SINGLE_SELECT" | "MULTI_SELECT"
+// questionType: "SINGLE_SELECT" | "MULTI_SELECT" | "TRUE_FALSE" | "CATEGORISE" | "MATCHING" | "SECTION"
 model Question {
   id           String   @id @default(cuid())
   quizId       String
@@ -58,6 +58,14 @@ model Question {
   points       Int      @default(100)
   orderIndex   Int
 
+  // Structured content for the extended question types, stored as JSON.
+  // categoriseData: { categories: [{id,label}], items: [{id,label,categoryId}] }
+  // matchingData: { pairs: [{leftId,leftLabel,rightId,rightLabel}] }
+  // Nullable and unused by SINGLE_SELECT/MULTI_SELECT/TRUE_FALSE/SECTION so
+  // existing multiple-choice questions are unaffected (backward compatible).
+  categoriseData String?
+  matchingData   String?
+
   // Easter Egg Configuration
   easterEggEnabled          Boolean  @default(false)
   easterEggButtonText       String?
@@ -67,11 +75,12 @@ model Question {
   // Power-up Configuration
   hint String?  // Required if quiz has hintCount > 0
 
-  answers         Answer[]
-  playerAnswers   PlayerAnswer[]
-  easterEggClicks EasterEggClick[]
-  powerUpUsages   PowerUpUsage[]
-  translations    QuestionTranslation[]
+  answers              Answer[]
+  playerAnswers        PlayerAnswer[]
+  easterEggClicks      EasterEggClick[]
+  powerUpUsages        PowerUpUsage[]
+  translations         QuestionTranslation[]
+  contentTranslations  QuestionContentTranslation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -214,6 +223,28 @@ model QuestionTranslation {
   easterEggButtonText String?
 
   isAutoTranslated Boolean  @default(true) // false if manually edited
+  translatedAt     DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([questionId, languageCode])
+  @@index([questionId])
+  @@index([languageCode])
+}
+
+// Translation for the structured content of CATEGORISE/MATCHING questions
+// (category labels, item labels, matching pair labels). Stored as a JSON
+// string mirroring the source structure with translated labels, e.g.
+// categorise: { categories: [{id,label}], items: [{id,label}] }
+// matching: { pairs: [{leftId,leftLabel,rightId,rightLabel}] }
+model QuestionContentTranslation {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  languageCode String  // ISO 639-1 code, e.g. 'es', 'sr-Latn', 'sr-Cyrl'
+  contentData  String  // JSON string of translated structured content
+
+  isAutoTranslated Boolean  @default(true)
   translatedAt     DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

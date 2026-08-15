@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import {
+  validateCategoriseData,
+  validateMatchingData,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
@@ -49,6 +55,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       points = 100,
       answers = [],
       hint,
+      categoriseData,
+      matchingData,
       easterEggEnabled = false,
       easterEggButtonText,
       easterEggUrl,
@@ -84,13 +92,64 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Sections don't require answers, but regular questions do
+    // Type-specific validation
     const isSection = questionType === "SECTION";
-    if (!isSection && (!Array.isArray(answers) || answers.length < 2)) {
-      return NextResponse.json(
-        { error: "At least 2 answers are required" },
-        { status: 400 }
-      );
+    const isCategorise = questionType === "CATEGORISE";
+    const isMatching = questionType === "MATCHING";
+    const isTrueFalse = questionType === "TRUE_FALSE";
+
+    // CATEGORISE / MATCHING use structured JSON content instead of answers.
+    let categoriseDataJson: string | null = null;
+    let matchingDataJson: string | null = null;
+
+    if (isCategorise) {
+      if (!categoriseData || typeof categoriseData !== "object") {
+        return NextResponse.json(
+          { error: "Categorise questions require categoriseData" },
+          { status: 400 }
+        );
+      }
+      const result = validateCategoriseData(categoriseData as CategoriseData);
+      if (!result.valid) {
+        return NextResponse.json(
+          { error: result.error || "Invalid categorise data" },
+          { status: 400 }
+        );
+      }
+      categoriseDataJson = JSON.stringify(categoriseData);
+    } else if (isMatching) {
+      if (!matchingData || typeof matchingData !== "object") {
+        return NextResponse.json(
+          { error: "Matching questions require matchingData" },
+          { status: 400 }
+        );
+      }
+      const result = validateMatchingData(matchingData as MatchingData);
+      if (!result.valid) {
+        return NextResponse.json(
+          { error: result.error || "Invalid matching data" },
+          { status: 400 }
+        );
+      }
+      matchingDataJson = JSON.stringify(matchingData);
+    } else if (!isSection) {
+      // SINGLE_SELECT / MULTI_SELECT / TRUE_FALSE require answer options.
+      if (!Array.isArray(answers) || answers.length < 2) {
+        return NextResponse.json(
+          { error: "At least 2 answers are required" },
+          { status: 400 }
+        );
+      }
+      if (isTrueFalse) {
+        // Exactly one correct answer out of exactly two.
+        const correctCount = answers.filter((a: { isCorrect?: boolean }) => a.isCorrect).length;
+        if (answers.length !== 2 || correctCount !== 1) {
+          return NextResponse.json(
+            { error: "True/False questions must have exactly 2 answers with one correct" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Get the next order index
@@ -112,26 +171,30 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         points,
         orderIndex: nextOrderIndex,
         hint: hint?.trim() || null,
+        categoriseData: categoriseDataJson,
+        matchingData: matchingDataJson,
         easterEggEnabled,
         easterEggButtonText: easterEggEnabled ? easterEggButtonText.trim() : null,
         easterEggUrl: easterEggEnabled ? easterEggUrl.trim() : null,
         easterEggDisablesScoring: easterEggEnabled ? easterEggDisablesScoring : false,
         answers: {
-          create: answers.map(
-            (
-              answer: {
-                answerText: string;
-                imageUrl?: string;
-                isCorrect?: boolean;
-              },
-              index: number
-            ) => ({
-              answerText: answer.answerText.trim(),
-              imageUrl: answer.imageUrl?.trim() || null,
-              isCorrect: answer.isCorrect ?? false,
-              orderIndex: index,
-            })
-          ),
+          create: isSection || isCategorise || isMatching
+            ? []
+            : answers.map(
+                (
+                  answer: {
+                    answerText: string;
+                    imageUrl?: string;
+                    isCorrect?: boolean;
+                  },
+                  index: number
+                ) => ({
+                  answerText: answer.answerText.trim(),
+                  imageUrl: answer.imageUrl?.trim() || null,
+                  isCorrect: answer.isCorrect ?? false,
+                  orderIndex: index,
+                })
+            ),
         },
       },
       include: {

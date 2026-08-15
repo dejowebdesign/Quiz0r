@@ -26,6 +26,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               orderBy: { orderIndex: "asc" },
             },
             translations: true,
+            contentTranslations: true,
           },
           orderBy: { orderIndex: "asc" },
         },

@@ -156,7 +156,12 @@
     "you": "אתה",
     "submitAnswer": "שלח תשובה ({count} נבחרו)",
     "clicked": "נלחץ!",
-    "waitingForTime": "ממתין לתום הזמן..."
+    "waitingForTime": "ממתין לתום הזמן...",
+    "categoriseAssignAll": "שייך כל פריט לקטגוריה כדי לשלוח",
+    "matchAllPairs": "התאם את כל הזוגות כדי לשלוח",
+    "selectMatch": "בחר התאמה",
+    "correctCategoryWas": "קטגוריה נכונה",
+    "correctMatchWas": "התאמה נכונה"
   },
   "host": {
     "waitingForPlayers": "ממתין לשחקנים",
@@ -236,7 +241,15 @@
     "emptyWaiting": "ממתין למצב",
     "player": "שחקן",
     "upNext": "הבא",
-    "upNextQuestion": "הבא (ש{current} מתוך {total})"
+    "upNextQuestion": "הבא (ש{current} מתוך {total})",
+    "trueFalse": "נכון/לא נכון",
+    "categorise": "סיווג",
+    "matching": "התאמה",
+    "correctCategory": "קטגוריה נכונה",
+    "assignToCategory": "שייך לקטגוריה",
+    "correctMatch": "התאמה נכונה",
+    "matchWith": "התאם עם פריט",
+    "correct": "נכון"
   },
   "admin": {
     "quizzes": "חידונים",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "תרגום ל-{name}...",
       "deleteTranslation": "מחק תרגום",
       "title": "כותרת",
-      "description": "תיאור"
-    }
+      "description": "תיאור",
+      "typeSingle": "יחיד",
+      "typeMulti": "מרובה",
+      "typeTrueFalse": "נכון/לא נכון",
+      "typeCategorise": "סיווג",
+      "typeMatching": "התאמה",
+      "categories": "קטגוריות",
+      "items": "פריטים",
+      "addCategory": "הוסף קטגוריה",
+      "addItem": "הוסף פריט",
+      "categoryN": "קטגוריה {n}",
+      "itemN": "פריט {n}",
+      "selectCategory": "בחר קטגוריה",
+      "pairs": "זוגות",
+      "addPair": "הוסף זוג",
+      "leftN": "שמאל {n}",
+      "rightN": "ימין {n}",
+      "multiSelectHint": "ניתן לסמן מספר תשובות כנכונות. השחקנים מקבלים ניקוד חלקי על כל תשובה נכונה.",
+      "trueFalseHint": "סמן נכון או לא נכון כתשובה הנכונה.",
+      "singleSelectHint": "סמן בדיוק תשובה אחת כנכונה.",
+      "categoriseHint": "שייך כל פריט לקטגוריה הנכונה. השחקנים מקבלים ניקוד חלקי על כל שיוך נכון.",
+      "matchingHint": "התאם כל פריט שמאלי לפריט הימני הנכון. השחקנים מקבלים ניקוד חלקי על כל זוג נכון."
+    },
+    "categoriseInvalid": "נתוני הסיווג חלקיים או לא תקינים",
+    "matchingInvalid": "נתוני ההתאמה חלקיים או לא תקינים"
   }
 }

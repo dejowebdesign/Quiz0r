@@ -156,7 +156,12 @@
     "you": "Tú",
     "submitAnswer": "Enviar respuesta ({count} seleccionadas)",
     "clicked": "¡Pulsado!",
-    "waitingForTime": "Esperando a que termine el tiempo..."
+    "waitingForTime": "Esperando a que termine el tiempo...",
+    "categoriseAssignAll": "Asigna cada elemento a una categoría para enviar",
+    "matchAllPairs": "Empareja todos los pares para enviar",
+    "selectMatch": "Seleccionar emparejamiento",
+    "correctCategoryWas": "Categoría correcta",
+    "correctMatchWas": "Emparejamiento correcto"
   },
   "host": {
     "waitingForPlayers": "Esperando jugadores",
@@ -236,7 +241,15 @@
     "emptyWaiting": "Esperando estado",
     "player": "Jugador",
     "upNext": "A continuación",
-    "upNextQuestion": "A continuación (P{current} de {total})"
+    "upNextQuestion": "A continuación (P{current} de {total})",
+    "trueFalse": "Verdadero/Falso",
+    "categorise": "Categorizar",
+    "matching": "Emparejar",
+    "correctCategory": "Categoría correcta",
+    "assignToCategory": "Asignar a una categoría",
+    "correctMatch": "Emparejamiento correcto",
+    "matchWith": "Emparejar con un elemento",
+    "correct": "correcto"
   },
   "admin": {
     "quizzes": "Cuestionarios",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "Traducción al {name}...",
       "deleteTranslation": "Eliminar traducción",
       "title": "Título",
-      "description": "Descripción"
-    }
+      "description": "Descripción",
+      "typeSingle": "Única",
+      "typeMulti": "Múltiple",
+      "typeTrueFalse": "Verdadero/Falso",
+      "typeCategorise": "Categorizar",
+      "typeMatching": "Emparejar",
+      "categories": "Categorías",
+      "items": "Elementos",
+      "addCategory": "Añadir categoría",
+      "addItem": "Añadir elemento",
+      "categoryN": "Categoría {n}",
+      "itemN": "Elemento {n}",
+      "selectCategory": "Seleccionar categoría",
+      "pairs": "Pares",
+      "addPair": "Añadir par",
+      "leftN": "Izquierda {n}",
+      "rightN": "Derecha {n}",
+      "multiSelectHint": "Se pueden marcar varias respuestas como correctas. Los jugadores reciben crédito parcial por cada respuesta correcta.",
+      "trueFalseHint": "Marca Verdadero o Falso como respuesta correcta.",
+      "singleSelectHint": "Marca exactamente una respuesta como correcta.",
+      "categoriseHint": "Asigna cada elemento a la categoría correcta. Los jugadores reciben crédito parcial por cada asignación correcta.",
+      "matchingHint": "Empareja cada elemento izquierdo con el derecho correcto. Los jugadores reciben crédito parcial por cada par correcto."
+    },
+    "categoriseInvalid": "Los datos de categorización están incompletos o son inválidos",
+    "matchingInvalid": "Los datos de emparejamiento están incompletos o son inválidos"
   }
 }

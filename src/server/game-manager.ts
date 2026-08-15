@@ -26,6 +26,25 @@ import {
 import { parseTheme } from "@/lib/theme";
 import { prisma } from "@/lib/db";
 import { validateSessionFromCookieHeader } from "@/lib/auth";
+import {
+  isCategoriseType,
+  isMatchingType,
+  isTrueFalseType,
+  parseCategoriseData,
+  parseMatchingData,
+  parseCategoriseAnswerId,
+  parseMatchingAnswerId,
+  calculateCategoriseScore,
+  calculateMatchingScore,
+  categoriseAssignmentId,
+  matchingAssignmentId,
+  playerSafeCategoriseData,
+  playerSafeMatchingData,
+  type CategoriseData,
+  type MatchingData,
+  type CategoriseAssignment,
+  type MatchingAssignment,
+} from "@/lib/question-types";
 
 interface ActiveGame {
   gameCode: string;
@@ -36,6 +55,9 @@ interface ActiveGame {
   timerInterval: NodeJS.Timeout | null;
   questions: QuestionData[];
   correctAnswerIds: Map<string, string[]>; // questionId -> correctAnswerIds
+  // Structured correctness data for CATEGORISE/MATCHING (questionId -> data).
+  categoriseCorrect: Map<string, CategoriseData>;
+  matchingCorrect: Map<string, MatchingData>;
   playerAnswers: Map<string, Set<string>>; // questionId -> Set of playerIds who answered
   previousPositions: Map<string, number>; // playerId -> previous position
   pendingReveal?: {
@@ -43,8 +65,29 @@ interface ActiveGame {
     stats: {
       totalAnswered: number;
       answerDistribution: Record<string, number>;
+      // Per-item / per-pair correctness counts for the extended types.
+      categorise?: CategoriseRevealStat[];
+      matching?: MatchingRevealStat[];
     };
+    // Structured correct answer maps for the extended types.
+    // itemId -> correct categoryId; leftId -> correct rightId.
+    correctCategorise?: Record<string, string>;
+    correctMatching?: Record<string, string>;
   };
+}
+
+interface CategoriseRevealStat {
+  itemId: string;
+  categoryId: string; // correct category
+  correctCount: number;
+  total: number;
+}
+
+interface MatchingRevealStat {
+  leftId: string;
+  rightId: string; // correct right id
+  correctCount: number;
+  total: number;
 }
 
 type TypedServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -385,7 +428,7 @@ export class GameManager {
         questionText: q.questionText,
         imageUrl: q.imageUrl,
         hostNotes: q.hostNotes,
-        questionType: q.questionType as "SINGLE_SELECT" | "MULTI_SELECT",
+        questionType: q.questionType as QuestionData["questionType"],
         timeLimit: q.timeLimit,
         points: q.points,
         answers: q.answers.map((a) => ({
@@ -397,14 +440,35 @@ export class GameManager {
         easterEggButtonText: q.easterEggButtonText,
         easterEggUrl: q.easterEggUrl,
         easterEggDisablesScoring: q.easterEggDisablesScoring,
+        categoriseData: parseCategoriseData(q.categoriseData),
+        matchingData: parseMatchingData(q.matchingData),
       }));
 
       const correctAnswerIds = new Map<string, string[]>();
+      const categoriseCorrect = new Map<string, CategoriseData>();
+      const matchingCorrect = new Map<string, MatchingData>();
       for (const q of gameSession.quiz.questions) {
-        correctAnswerIds.set(
-          q.id,
-          q.answers.filter((a) => a.isCorrect).map((a) => a.id)
-        );
+        if (isCategoriseType(q.questionType)) {
+          const data = parseCategoriseData(q.categoriseData);
+          if (data) categoriseCorrect.set(q.id, data);
+          // Precompute correct assignment tokens for reveal consistency.
+          correctAnswerIds.set(
+            q.id,
+            (data?.items || []).map((i) => categoriseAssignmentId(i.id, i.categoryId))
+          );
+        } else if (isMatchingType(q.questionType)) {
+          const data = parseMatchingData(q.matchingData);
+          if (data) matchingCorrect.set(q.id, data);
+          correctAnswerIds.set(
+            q.id,
+            (data?.pairs || []).map((p) => matchingAssignmentId(p.leftId, p.rightId))
+          );
+        } else {
+          correctAnswerIds.set(
+            q.id,
+            q.answers.filter((a) => a.isCorrect).map((a) => a.id)
+          );
+        }
       }
 
       this.activeGames.set(upperCode, {
@@ -416,6 +480,8 @@ export class GameManager {
         timerInterval: null,
         questions,
         correctAnswerIds,
+        categoriseCorrect,
+        matchingCorrect,
         playerAnswers: new Map(),
         previousPositions: new Map(),
       });
@@ -518,9 +584,16 @@ export class GameManager {
       .slice(0, game.currentQuestionIndex + 1)
       .filter((q) => q.questionType !== "SECTION").length;
 
-    // Send question/section to all clients
+    // Send question/section to all clients. For CATEGORISE/MATCHING, strip the
+    // correct-answer info so it cannot be read from the socket payload.
+    const playerQuestion: QuestionData = isCategoriseType(question.questionType) && question.categoriseData
+      ? { ...question, categoriseData: playerSafeCategoriseData(question.categoriseData) }
+      : isMatchingType(question.questionType) && question.matchingData
+        ? { ...question, matchingData: playerSafeMatchingData(question.matchingData) }
+        : question;
+
     this.io.to(`game:${gameCode}`).emit("game:questionStart", {
-      question,
+      question: playerQuestion,
       questionIndex: game.currentQuestionIndex,
       questionNumber,
       startTime: game.questionStartedAt,
@@ -619,7 +692,43 @@ export class GameManager {
     let points = 0;
     let isCorrect = false;
 
-    if (question.questionType === "SINGLE_SELECT") {
+    if (isCategoriseType(question.questionType)) {
+      const data = game.categoriseCorrect.get(questionId);
+      const assignments: CategoriseAssignment[] = answerIds
+        .map(parseCategoriseAnswerId)
+        .filter((a): a is CategoriseAssignment => a !== null);
+      if (data) {
+        const result = calculateCategoriseScore(
+          question.points,
+          question.timeLimit * 1000,
+          timeTaken,
+          assignments,
+          data
+        );
+        points = result.points;
+        isCorrect = result.isCorrect;
+      }
+    } else if (isMatchingType(question.questionType)) {
+      const data = game.matchingCorrect.get(questionId);
+      const assignments: MatchingAssignment[] = answerIds
+        .map(parseMatchingAnswerId)
+        .filter((a): a is MatchingAssignment => a !== null);
+      if (data) {
+        const result = calculateMatchingScore(
+          question.points,
+          question.timeLimit * 1000,
+          timeTaken,
+          assignments,
+          data
+        );
+        points = result.points;
+        isCorrect = result.isCorrect;
+      }
+    } else if (
+      question.questionType === "SINGLE_SELECT" ||
+      isTrueFalseType(question.questionType)
+    ) {
+      // TRUE_FALSE behaves like single-select: one correct answer wins.
       isCorrect = answerIds.length === 1 && correctIds.includes(answerIds[0]);
       points = calculateSingleSelectScore(
         question.points,
@@ -756,11 +865,86 @@ export class GameManager {
       }
     }
 
+    // Build type-specific reveal statistics for the extended types.
+    let categoriseStats: CategoriseRevealStat[] | undefined;
+    let matchingStats: MatchingRevealStat[] | undefined;
+
+    if (isCategoriseType(question.questionType)) {
+      const data = game.categoriseCorrect.get(question.id);
+      if (data) {
+        const total = answers.length;
+        categoriseStats = data.items.map((item) => {
+          let correctCount = 0;
+          for (const answer of answers) {
+            const selected = JSON.parse(answer.selectedAnswerIds) as string[];
+            for (const id of selected) {
+              const assignment = parseCategoriseAnswerId(id);
+              if (assignment && assignment.itemId === item.id && assignment.categoryId === item.categoryId) {
+                correctCount += 1;
+                break;
+              }
+            }
+          }
+          return {
+            itemId: item.id,
+            categoryId: item.categoryId,
+            correctCount,
+            total,
+          };
+        });
+      }
+    } else if (isMatchingType(question.questionType)) {
+      const data = game.matchingCorrect.get(question.id);
+      if (data) {
+        const total = answers.length;
+        matchingStats = data.pairs.map((pair) => {
+          let correctCount = 0;
+          for (const answer of answers) {
+            const selected = JSON.parse(answer.selectedAnswerIds) as string[];
+            for (const id of selected) {
+              const assignment = parseMatchingAnswerId(id);
+              if (assignment && assignment.leftId === pair.leftId && assignment.rightId === pair.rightId) {
+                correctCount += 1;
+                break;
+              }
+            }
+          }
+          return {
+            leftId: pair.leftId,
+            rightId: pair.rightId,
+            correctCount,
+            total,
+          };
+        });
+      }
+    }
+
     // Update database
     await prisma.gameSession.update({
       where: { gameCode },
       data: { status: "REVEALING" },
     });
+
+    // Build the structured correct-answer maps for the player reveal UI.
+    let correctCategoriseMap: Record<string, string> | undefined;
+    let correctMatchingMap: Record<string, string> | undefined;
+    if (isCategoriseType(question.questionType)) {
+      const data = game.categoriseCorrect.get(question.id);
+      if (data) {
+        correctCategoriseMap = {};
+        for (const item of data.items) {
+          correctCategoriseMap[item.id] = item.categoryId;
+        }
+      }
+    } else if (isMatchingType(question.questionType)) {
+      const data = game.matchingCorrect.get(question.id);
+      if (data) {
+        correctMatchingMap = {};
+        for (const pair of data.pairs) {
+          correctMatchingMap[pair.leftId] = pair.rightId;
+        }
+      }
+    }
 
     // Cache reveal payload
     game.pendingReveal = {
@@ -768,7 +952,11 @@ export class GameManager {
       stats: {
         totalAnswered: answeredPlayers?.size || 0,
         answerDistribution: distribution,
+        categorise: categoriseStats,
+        matching: matchingStats,
       },
+      correctCategorise: correctCategoriseMap,
+      correctMatching: correctMatchingMap,
     };
 
     // Notify clients that time is up; reveal will be host-controlled
@@ -1350,6 +1538,7 @@ export class GameManager {
                     orderBy: { orderIndex: "asc" },
                   },
                   translations: true,
+                  contentTranslations: true,
                 },
                 orderBy: { orderIndex: "asc" },
               },
@@ -1384,6 +1573,36 @@ export class GameManager {
           };
         });
 
+        // Merge structured-content translations (CATEGORISE/MATCHING labels) into
+        // the per-language translation record so the player receives localized
+        // category/item/pair labels alongside the question text translations.
+        const categoriseSource = parseCategoriseData(q.categoriseData);
+        const matchingSource = parseMatchingData(q.matchingData);
+        q.contentTranslations.forEach((ct) => {
+          const lang = ct.languageCode as LanguageCode;
+          if (!questionTranslations[lang]) {
+            questionTranslations[lang] = {};
+          }
+          try {
+            const content = JSON.parse(ct.contentData);
+            if (content && typeof content === "object") {
+              if (Array.isArray(content.categories) || Array.isArray(content.items)) {
+                questionTranslations[lang].categoriseData = {
+                  categories: content.categories ?? categoriseSource?.categories ?? [],
+                  items: content.items ?? categoriseSource?.items ?? [],
+                };
+              }
+              if (Array.isArray(content.pairs)) {
+                questionTranslations[lang].matchingData = {
+                  pairs: content.pairs,
+                };
+              }
+            }
+          } catch {
+            // ignore malformed content translation
+          }
+        });
+
         // Build answers with translations
         const answers = q.answers.map((a) => {
           const answerTranslations: Record<LanguageCode, any> = {} as any;
@@ -1401,13 +1620,39 @@ export class GameManager {
           };
         });
 
+        // Player-safe structured content: strip correct-answer info before
+        // sending preload data to players. Translated structured content is
+        // sanitized the same way per language.
+        const categoriseSafe = categoriseSource
+          ? playerSafeCategoriseData(categoriseSource)
+          : null;
+        const matchingSafe = matchingSource
+          ? playerSafeMatchingData(matchingSource)
+          : null;
+        if (categoriseSource && categoriseSafe) {
+          Object.keys(questionTranslations).forEach((lang) => {
+            const t = questionTranslations[lang as LanguageCode];
+            if (t && t.categoriseData) {
+              t.categoriseData = playerSafeCategoriseData(t.categoriseData);
+            }
+          });
+        }
+        if (matchingSource && matchingSafe) {
+          Object.keys(questionTranslations).forEach((lang) => {
+            const t = questionTranslations[lang as LanguageCode];
+            if (t && t.matchingData) {
+              t.matchingData = playerSafeMatchingData(t.matchingData);
+            }
+          });
+        }
+
         return {
           id: q.id,
           questionText: q.questionText,
           imageUrl: q.imageUrl,
           hostNotes: q.hostNotes,
           hint: q.hint,
-          questionType: q.questionType as "SINGLE_SELECT" | "MULTI_SELECT" | "SECTION",
+          questionType: q.questionType as QuestionData["questionType"],
           timeLimit: q.timeLimit,
           points: q.points,
           answers,
@@ -1415,6 +1660,8 @@ export class GameManager {
           easterEggButtonText: q.easterEggButtonText,
           easterEggUrl: q.easterEggUrl,
           easterEggDisablesScoring: q.easterEggDisablesScoring,
+          categoriseData: categoriseSafe,
+          matchingData: matchingSafe,
           translations: Object.keys(questionTranslations).length > 0 ? questionTranslations : undefined,
         };
       });

@@ -41,7 +41,12 @@ interface UseSocketReturn {
   timeRemaining: number;
   scores: PlayerScore[];
   answerResult: { correct: boolean; points: number; position: number } | null;
-  questionEnded: { correctAnswerIds: string[]; stats: AnswerStats } | null;
+  questionEnded: {
+    correctAnswerIds: string[];
+    stats: AnswerStats;
+    correctCategorise?: Record<string, string>;
+    correctMatching?: Record<string, string>;
+  } | null;
   awaitingReveal: boolean;
   playerAnswers: Map<string, PlayerAnswerDetail[]>; // questionId -> answers
   easterEggClicks: Map<string, EasterEggClickDetail[]>; // questionId -> clicks
@@ -94,6 +99,8 @@ export function useSocket({
   const [questionEnded, setQuestionEnded] = useState<{
     correctAnswerIds: string[];
     stats: AnswerStats;
+    correctCategorise?: Record<string, string>;
+    correctMatching?: Record<string, string>;
   } | null>(null);
   const [awaitingReveal, setAwaitingReveal] = useState(false);
   const [playerAnswers, setPlayerAnswers] = useState<Map<string, PlayerAnswerDetail[]>>(

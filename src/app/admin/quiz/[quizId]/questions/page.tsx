@@ -36,6 +36,18 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SupportedLanguages, type LanguageCode, type TranslationStatus } from "@/types";
+import {
+  parseCategoriseData,
+  parseMatchingData,
+  validateCategoriseData,
+  validateMatchingData,
+  newLocalId,
+  type CategoriseData,
+  type MatchingData,
+  type CategoriseCategory,
+  type CategoriseItem,
+  type MatchingPair,
+} from "@/lib/question-types";
 import { resolveSourceLanguage } from "@/lib/source-language";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
@@ -65,6 +77,8 @@ interface Question {
   points: number;
   orderIndex: number;
   answers: Answer[];
+  categoriseData?: string | null;
+  matchingData?: string | null;
 }
 
 interface Quiz {
@@ -157,6 +171,23 @@ export default function QuestionsPage({
     { answerText: "", isCorrect: false },
     { answerText: "", isCorrect: false },
   ]);
+  // Structured-content state for CATEGORISE / MATCHING questions.
+  const [categoriseData, setCategoriseData] = useState<CategoriseData>({
+    categories: [
+      { id: newLocalId("cat"), label: "" },
+      { id: newLocalId("cat"), label: "" },
+    ],
+    items: [
+      { id: newLocalId("item"), label: "", categoryId: "" },
+      { id: newLocalId("item"), label: "", categoryId: "" },
+    ],
+  });
+  const [matchingData, setMatchingData] = useState<MatchingData>({
+    pairs: [
+      { leftId: newLocalId("left"), leftLabel: "", rightId: newLocalId("right"), rightLabel: "" },
+      { leftId: newLocalId("left"), leftLabel: "", rightId: newLocalId("right"), rightLabel: "" },
+    ],
+  });
   const [easterEggEnabled, setEasterEggEnabled] = useState(false);
   const [easterEggButtonText, setEasterEggButtonText] = useState("Click for a surprise!");
   const [easterEggUrl, setEasterEggUrl] = useState("");
@@ -439,6 +470,22 @@ export default function QuestionsPage({
       { answerText: "", isCorrect: false },
       { answerText: "", isCorrect: false },
     ]);
+    setCategoriseData({
+      categories: [
+        { id: newLocalId("cat"), label: "" },
+        { id: newLocalId("cat"), label: "" },
+      ],
+      items: [
+        { id: newLocalId("item"), label: "", categoryId: "" },
+        { id: newLocalId("item"), label: "", categoryId: "" },
+      ],
+    });
+    setMatchingData({
+      pairs: [
+        { leftId: newLocalId("left"), leftLabel: "", rightId: newLocalId("right"), rightLabel: "" },
+        { leftId: newLocalId("left"), leftLabel: "", rightId: newLocalId("right"), rightLabel: "" },
+      ],
+    });
     setEasterEggEnabled(false);
     setEasterEggButtonText("Click for a surprise!");
     setEasterEggUrl("");
@@ -738,6 +785,29 @@ export default function QuestionsPage({
         isCorrect: a.isCorrect,
       }))
     );
+    // Load structured content when editing CATEGORISE/MATCHING questions.
+    const loadedCategorise = parseCategoriseData(question.categoriseData);
+    setCategoriseData(
+      loadedCategorise || {
+        categories: [
+          { id: newLocalId("cat"), label: "" },
+          { id: newLocalId("cat"), label: "" },
+        ],
+        items: [
+          { id: newLocalId("item"), label: "", categoryId: "" },
+          { id: newLocalId("item"), label: "", categoryId: "" },
+        ],
+      }
+    );
+    const loadedMatching = parseMatchingData(question.matchingData);
+    setMatchingData(
+      loadedMatching || {
+        pairs: [
+          { leftId: newLocalId("left"), leftLabel: "", rightId: newLocalId("right"), rightLabel: "" },
+          { leftId: newLocalId("left"), leftLabel: "", rightId: newLocalId("right"), rightLabel: "" },
+        ],
+      }
+    );
     setEasterEggEnabled((question as any).easterEggEnabled || false);
     setEasterEggButtonText((question as any).easterEggButtonText || "Click for a surprise!");
     setEasterEggUrl((question as any).easterEggUrl || "");
@@ -850,16 +920,37 @@ export default function QuestionsPage({
       return;
     }
 
-    const validAnswers = answers.filter((a) => a.answerText.trim());
+    const isStructuredType =
+      questionType === "CATEGORISE" || questionType === "MATCHING";
 
-    if (validAnswers.length < 2) {
-      toast.error("At least 2 answers are required");
-      return;
-    }
+    // Validate structured content for CATEGORISE/MATCHING. For these types we
+    // skip the answers array entirely.
+    if (isStructuredType) {
+      if (questionType === "CATEGORISE") {
+        const result = validateCategoriseData(categoriseData);
+        if (!result.valid) {
+          toast.error(result.error || t("editor.categoriseInvalid"));
+          return;
+        }
+      } else {
+        const result = validateMatchingData(matchingData);
+        if (!result.valid) {
+          toast.error(result.error || t("editor.matchingInvalid"));
+          return;
+        }
+      }
+    } else {
+      const validAnswers = answers.filter((a) => a.answerText.trim());
 
-    if (!validAnswers.some((a) => a.isCorrect)) {
-      toast.error(t("editor.atLeastOneCorrect"));
-      return;
+      if (validAnswers.length < 2) {
+        toast.error("At least 2 answers are required");
+        return;
+      }
+
+      if (!validAnswers.some((a) => a.isCorrect)) {
+        toast.error(t("editor.atLeastOneCorrect"));
+        return;
+      }
     }
 
     if (easterEggEnabled) {
@@ -878,7 +969,8 @@ export default function QuestionsPage({
       return;
     }
 
-    const questionData = {
+    const validAnswers = answers.filter((a) => a.answerText.trim());
+    const questionData: Record<string, unknown> = {
       questionText,
       imageUrl: imageUrl || null,
       hostNotes: hostNotes || null,
@@ -886,12 +978,24 @@ export default function QuestionsPage({
       questionType,
       timeLimit,
       points,
-      answers: validAnswers,
       easterEggEnabled,
       easterEggButtonText: easterEggEnabled ? easterEggButtonText.trim() : null,
       easterEggUrl: easterEggEnabled ? easterEggUrl.trim() : null,
       easterEggDisablesScoring: easterEggEnabled ? easterEggDisablesScoring : false,
     };
+
+    if (isStructuredType) {
+      // Structured types carry no answer options.
+      questionData.answers = [];
+      questionData.categoriseData =
+        questionType === "CATEGORISE" ? JSON.stringify(categoriseData) : null;
+      questionData.matchingData =
+        questionType === "MATCHING" ? JSON.stringify(matchingData) : null;
+    } else {
+      questionData.answers = validAnswers;
+      questionData.categoriseData = null;
+      questionData.matchingData = null;
+    }
 
     try {
       let res;
@@ -1004,6 +1108,8 @@ export default function QuestionsPage({
           answerText: a.answerText,
           isCorrect: a.isCorrect,
         })),
+        categoriseData: question.categoriseData ?? null,
+        matchingData: question.matchingData ?? null,
       };
 
       const res = await fetch(`/api/quizzes/${quizId}/questions`, {
@@ -1310,6 +1416,10 @@ export default function QuestionsPage({
         setPoints={setPoints}
         answers={answers}
         setAnswers={setAnswers}
+        categoriseData={categoriseData}
+        setCategoriseData={setCategoriseData}
+        matchingData={matchingData}
+        setMatchingData={setMatchingData}
         easterEggEnabled={easterEggEnabled}
         setEasterEggEnabled={setEasterEggEnabled}
         easterEggButtonText={easterEggButtonText}

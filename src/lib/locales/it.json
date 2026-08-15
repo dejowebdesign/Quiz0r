@@ -156,7 +156,12 @@
     "you": "Tu",
     "submitAnswer": "Invia risposta ({count} selezionate)",
     "clicked": "Cliccato!",
-    "waitingForTime": "In attesa della fine del tempo..."
+    "waitingForTime": "In attesa della fine del tempo...",
+    "categoriseAssignAll": "Assegna ogni elemento a una categoria per inviare",
+    "matchAllPairs": "Abbinia tutte le coppie per inviare",
+    "selectMatch": "Seleziona abbinamento",
+    "correctCategoryWas": "Categoria corretta",
+    "correctMatchWas": "Abbinamento corretto"
   },
   "host": {
     "waitingForPlayers": "In attesa di giocatori",
@@ -236,7 +241,15 @@
     "emptyWaiting": "In attesa di stato",
     "player": "Giocatore",
     "upNext": "Prossima",
-    "upNextQuestion": "Prossima (D{current} di {total})"
+    "upNextQuestion": "Prossima (D{current} di {total})",
+    "trueFalse": "Vero/Falso",
+    "categorise": "Categorizzare",
+    "matching": "Abbinare",
+    "correctCategory": "Categoria corretta",
+    "assignToCategory": "Assegna a una categoria",
+    "correctMatch": "Abbinamento corretto",
+    "matchWith": "Abbinia con un elemento",
+    "correct": "corretto"
   },
   "admin": {
     "quizzes": "Quiz",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "Traduzione in {name}...",
       "deleteTranslation": "Elimina traduzione",
       "title": "Titolo",
-      "description": "Descrizione"
-    }
+      "description": "Descrizione",
+      "typeSingle": "Singola",
+      "typeMulti": "Multipla",
+      "typeTrueFalse": "Vero/Falso",
+      "typeCategorise": "Categorizzare",
+      "typeMatching": "Abbinare",
+      "categories": "Categorie",
+      "items": "Elementi",
+      "addCategory": "Aggiungi categoria",
+      "addItem": "Aggiungi elemento",
+      "categoryN": "Categoria {n}",
+      "itemN": "Elemento {n}",
+      "selectCategory": "Seleziona categoria",
+      "pairs": "Coppie",
+      "addPair": "Aggiungi coppia",
+      "leftN": "Sinistra {n}",
+      "rightN": "Destra {n}",
+      "multiSelectHint": "Più risposte possono essere segnate come corrette. I giocatori ricevono credito parziale per ogni risposta corretta.",
+      "trueFalseHint": "Segna Vero o Falso come risposta corretta.",
+      "singleSelectHint": "Segna esattamente una risposta come corretta.",
+      "categoriseHint": "Assegna ogni elemento alla categoria corretta. I giocatori ricevono credito parziale per ogni assegnazione corretta.",
+      "matchingHint": "Abbinia ogni elemento di sinistra con quello destro corretto. I giocatori ricevono credito parziale per ogni coppia corretta."
+    },
+    "categoriseInvalid": "I dati di categorizzazione sono incompleti o non validi",
+    "matchingInvalid": "I dati di abbinamento sono incompleti o non validi"
   }
 }

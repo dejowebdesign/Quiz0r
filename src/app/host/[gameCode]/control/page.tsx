@@ -522,7 +522,13 @@ export default function HostControlPage({
                       <p className="text-sm text-muted-foreground mt-2">
                         {currentQuestion?.questionType === "MULTI_SELECT"
                           ? t("host.multiSelect")
-                          : t("host.singleSelect")}{" "}
+                          : currentQuestion?.questionType === "TRUE_FALSE"
+                            ? t("host.trueFalse")
+                            : currentQuestion?.questionType === "CATEGORISE"
+                              ? t("host.categorise")
+                              : currentQuestion?.questionType === "MATCHING"
+                                ? t("host.matching")
+                                : t("host.singleSelect")}{" "}
                         • {currentQuestion?.points} points •{" "}
                         {currentQuestion?.timeLimit}s
                       </p>

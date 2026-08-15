@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -102,6 +103,7 @@ export default function AdminDashboard() {
   const [aiSectionCount, setAiSectionCount] = useState(2);
   const [aiNotes, setAiNotes] = useState("");
   const [aiSourceLanguage, setAiSourceLanguage] = useState<LanguageCode>("en");
+  const [aiQuestionTypes, setAiQuestionTypes] = useState<string[]>(["MULTIPLE_CHOICE"]);
   const [aiStatus, setAiStatus] = useState<string | null>(null);
   const [aiProgress, setAiProgress] = useState(0);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -263,6 +265,7 @@ export default function AdminDashboard() {
           sectionCount: aiSectionCount,
           additionalNotes: aiNotes.trim(),
           sourceLanguage: aiSourceLanguage,
+          questionTypes: aiQuestionTypes,
         }),
       });
 
@@ -451,6 +454,41 @@ export default function AdminDashboard() {
                     <SelectItem value="hard">{t("admin.hard")}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("admin.questionTypes")}</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "MULTIPLE_CHOICE", key: "admin.questionTypeMultipleChoice" },
+                    { value: "TRUE_FALSE", key: "admin.questionTypeTrueFalse" },
+                    { value: "CATEGORISE", key: "admin.questionTypeCategorise" },
+                    { value: "MATCHING", key: "admin.questionTypeMatching" },
+                  ] as const).map((opt) => {
+                    const checked = aiQuestionTypes.includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        className="flex items-center gap-2 rounded-md border p-2 text-sm cursor-pointer has-[:disabled]:cursor-not-allowed"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          disabled={aiCreating}
+                          onCheckedChange={(checked) => {
+                            const next = new Set(aiQuestionTypes);
+                            if (checked) next.add(opt.value);
+                            else if (aiQuestionTypes.length > 1) next.delete(opt.value);
+                            setAiQuestionTypes(Array.from(next));
+                          }}
+                        />
+                        {t(opt.key)}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.questionTypesHelp")}
+                </p>
               </div>
 
               <div className="space-y-2">

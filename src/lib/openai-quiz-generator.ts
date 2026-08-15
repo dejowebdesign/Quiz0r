@@ -15,23 +15,103 @@ import {
   type NormalizedQuestion,
   type AIAnswer,
   type AIQuestion,
+  type AICategoriseCategory,
+  type AICategoriseItem,
+  type AIMatchingPair,
   type AISection,
   type AIQuizResponse,
   getConfiguredProvider,
 } from "@/lib/ai-provider";
+import {
+  AiQuestionTypeOption,
+  newLocalId,
+  validateCategoriseData,
+  validateMatchingData,
+  type CategoriseData,
+  type MatchingData,
+  type CategoriseCategory,
+  type CategoriseItem,
+  type MatchingPair,
+} from "@/lib/question-types";
 
-function normalizeQuestionType(type?: string): NormalizedQuestion["questionType"] {
+/**
+ * Default permitted types when the caller does not restrict them. Keeps the
+ * historic behaviour (single + multi) so existing flows are unchanged.
+ */
+const DEFAULT_ALLOWED_TYPES: AiQuestionTypeOption[] = [
+  AiQuestionTypeOption.MULTIPLE_CHOICE,
+];
+
+/**
+ * Map the legacy UI label "MULTIPLE_CHOICE" to the storage questionType. AI
+ * generation lets the user pick "multiple choice" as one bucket; the actual
+ * single vs. multi split is decided per-question by the model.
+ */
+function aiOptionToQuestionType(
+  option: AiQuestionTypeOption
+): "SINGLE_SELECT" | "MULTI_SELECT" | "TRUE_FALSE" | "CATEGORISE" | "MATCHING" {
+  switch (option) {
+    case AiQuestionTypeOption.TRUE_FALSE:
+      return "TRUE_FALSE";
+    case AiQuestionTypeOption.CATEGORISE:
+      return "CATEGORISE";
+    case AiQuestionTypeOption.MATCHING:
+      return "MATCHING";
+    case AiQuestionTypeOption.MULTIPLE_CHOICE:
+    default:
+      return "MULTI_SELECT";
+  }
+}
+
+function normalizeQuestionType(
+  type: string | undefined,
+  allowed: AiQuestionTypeOption[]
+): NormalizedQuestion["questionType"] {
   const normalized = type?.toUpperCase();
-  if (normalized === "MULTI_SELECT") return "MULTI_SELECT";
-  if (normalized === "SECTION") return "SECTION";
-  return "SINGLE_SELECT";
+  const permitted = new Set(allowed.map(aiOptionToQuestionType));
+
+  const map = (
+    t: string
+  ): "SINGLE_SELECT" | "MULTI_SELECT" | "TRUE_FALSE" | "CATEGORISE" | "MATCHING" | "SECTION" | null => {
+    if (t === "MULTI_SELECT") return "MULTI_SELECT";
+    if (t === "SINGLE_SELECT") return "SINGLE_SELECT";
+    if (t === "TRUE_FALSE" || t === "TRUEFALSE" || t === "TRUE/FALSE" || t === "BOOLEAN")
+      return "TRUE_FALSE";
+    if (t === "CATEGORISE" || t === "CATEGORIZE" || t === "CATEGORIZATION" || t === "SORT")
+      return "CATEGORISE";
+    if (t === "MATCHING" || t === "MATCH" || t === "MATCH_UP")
+      return "MATCHING";
+    if (t === "SECTION") return "SECTION";
+    return null;
+  };
+
+  if (normalized) {
+    const mapped = map(normalized);
+    if (mapped === "SECTION") return "SECTION";
+    if (mapped && permitted.has(mapped)) return mapped;
+  }
+
+  // Type not recognized or not permitted: fall back to the first allowed
+  // answer-based type. Prefer MULTI_SELECT, else SINGLE_SELECT.
+  if (permitted.has("MULTI_SELECT")) return "MULTI_SELECT";
+  if (permitted.has("SINGLE_SELECT")) return "SINGLE_SELECT";
+  if (permitted.has("TRUE_FALSE")) return "TRUE_FALSE";
+  if (permitted.has("CATEGORISE")) return "CATEGORISE";
+  if (permitted.has("MATCHING")) return "MATCHING";
+  return "MULTI_SELECT";
 }
 
 function normalizeAnswers(
   rawAnswers: AIAnswer[] | undefined,
   questionType: NormalizedQuestion["questionType"]
 ): NormalizedAnswer[] {
-  if (questionType === "SECTION") return [];
+  if (
+    questionType === "SECTION" ||
+    questionType === "CATEGORISE" ||
+    questionType === "MATCHING"
+  ) {
+    return [];
+  }
 
   const answers: NormalizedAnswer[] = (rawAnswers || [])
     .filter((a) => a.answerText?.trim())
@@ -44,6 +124,31 @@ function normalizeAnswers(
           : index === 0, // default first answer to correct if missing
     }))
     .slice(0, 6); // keep things concise
+
+  // TRUE/FALSE: force exactly two options (True, False) with one correct.
+  if (questionType === "TRUE_FALSE") {
+    const hasTrue = answers.some((a) => /true/i.test(a.answerText));
+    const hasFalse = answers.some((a) => /false/i.test(a.answerText));
+    if (answers.length < 2 || !hasTrue || !hasFalse) {
+      // Rebuild a canonical True/False pair if the model did not supply them.
+      answers.length = 0;
+      answers.push({ answerText: "True", isCorrect: true, imageUrl: null });
+      answers.push({ answerText: "False", isCorrect: false, imageUrl: null });
+    } else {
+      // Collapse to the canonical True/False pair.
+      const trueAnswer = answers.find((a) => /true/i.test(a.answerText))!;
+      const falseAnswer = answers.find((a) => /false/i.test(a.answerText))!;
+      trueAnswer.answerText = "True";
+      falseAnswer.answerText = "False";
+      answers.length = 0;
+      answers.push(trueAnswer, falseAnswer);
+    }
+    // Ensure exactly one correct.
+    const correctCount = answers.filter((a) => a.isCorrect).length;
+    if (correctCount === 0) answers[0].isCorrect = true;
+    if (correctCount > 1) answers[1].isCorrect = false;
+    return answers;
+  }
 
   // Ensure minimum answer set
   while (answers.length < 2) {
@@ -88,9 +193,105 @@ function normalizeAnswers(
   return answers;
 }
 
-function normalizeQuestion(question: AIQuestion): NormalizedQuestion {
-  const questionType = normalizeQuestionType(question.questionType);
-  const answers = normalizeAnswers(question.answers, questionType);
+/**
+ * Normalize AI-produced CATEGORISE content. Stable ids are assigned and the
+ * category assignment of each item is preserved; if the model produced no items
+ * or categories (or an invalid mapping), returns null so the caller falls back
+ * to a multi-select question.
+ */
+function normalizeCategoriseData(
+  raw: AIQuestion["categoriseData"]
+): CategoriseData | null {
+  if (!raw || !Array.isArray(raw.categories) || !Array.isArray(raw.items)) {
+    return null;
+  }
+  const categories: CategoriseCategory[] = (raw.categories as AICategoriseCategory[])
+    .filter((c) => c && typeof c.label === "string" && c.label.trim())
+    .map((c) => ({ id: c.id?.trim() || newLocalId("cat"), label: c.label.trim() }));
+  if (categories.length < 2) return null;
+
+  const categoryIds = new Set(categories.map((c) => c.id));
+  const items: CategoriseItem[] = (raw.items as AICategoriseItem[])
+    .filter((i) => i && typeof i.label === "string" && i.label.trim() && i.categoryId)
+    .map((i) => ({
+      id: i.id?.trim() || newLocalId("item"),
+      label: i.label.trim(),
+      categoryId: i.categoryId!.trim(),
+    }))
+    .filter((i) => categoryIds.has(i.categoryId));
+  if (items.length < 2) return null;
+
+  // Stable ids: re-map any AI-supplied ids to our own to guarantee uniqueness.
+  const catIdMap = new Map<string, string>();
+  categories.forEach((c, idx) => {
+    const stableId = `cat_${idx + 1}`;
+    catIdMap.set(c.id, stableId);
+    c.id = stableId;
+  });
+  items.forEach((i) => {
+    i.categoryId = catIdMap.get(i.categoryId) || i.categoryId;
+  });
+  items.forEach((i, idx) => {
+    i.id = `item_${idx + 1}`;
+  });
+
+  const data: CategoriseData = { categories, items };
+  return validateCategoriseData(data).valid ? data : null;
+}
+
+/**
+ * Normalize AI-produced MATCHING content. Stable ids are assigned and the
+ * left/right pairing is preserved; returns null if invalid so the caller falls
+ * back to a multi-select question.
+ */
+function normalizeMatchingData(raw: AIQuestion["matchingData"]): MatchingData | null {
+  if (!raw || !Array.isArray(raw.pairs)) return null;
+  const pairs: MatchingPair[] = (raw.pairs as AIMatchingPair[])
+    .filter(
+      (p) =>
+        p &&
+        typeof p.leftLabel === "string" &&
+        p.leftLabel.trim() &&
+        typeof p.rightLabel === "string" &&
+        p.rightLabel.trim()
+    )
+    .map((p, idx) => ({
+      leftId: `left_${idx + 1}`,
+      leftLabel: p.leftLabel.trim(),
+      rightId: `right_${idx + 1}`,
+      rightLabel: p.rightLabel.trim(),
+    }));
+  if (pairs.length < 2) return null;
+
+  const data: MatchingData = { pairs };
+  return validateMatchingData(data).valid ? data : null;
+}
+
+function normalizeQuestion(
+  question: AIQuestion,
+  allowed: AiQuestionTypeOption[]
+): NormalizedQuestion {
+  let questionType = normalizeQuestionType(question.questionType, allowed);
+  let answers = normalizeAnswers(question.answers, questionType);
+  let categoriseData: CategoriseData | null = null;
+  let matchingData: MatchingData | null = null;
+
+  // Normalize structured content for the extended types; if the model produced
+  // invalid structured content, coerce back to MULTI_SELECT so the question is
+  // still usable rather than dropped.
+  if (questionType === "CATEGORISE") {
+    categoriseData = normalizeCategoriseData(question.categoriseData);
+    if (!categoriseData) {
+      questionType = "MULTI_SELECT";
+      answers = normalizeAnswers(question.answers, questionType);
+    }
+  } else if (questionType === "MATCHING") {
+    matchingData = normalizeMatchingData(question.matchingData);
+    if (!matchingData) {
+      questionType = "MULTI_SELECT";
+      answers = normalizeAnswers(question.answers, questionType);
+    }
+  }
 
   return {
     questionText:
@@ -106,6 +307,8 @@ function normalizeQuestion(question: AIQuestion): NormalizedQuestion {
         : Math.min(90, Math.max(15, question.timeLimit ?? 30)),
     points: questionType === "SECTION" ? 0 : Math.max(50, question.points ?? 100),
     answers,
+    categoriseData,
+    matchingData,
   };
 }
 
@@ -116,7 +319,8 @@ function collectQuestionsFromSections(
   fallbackQuestions: AIQuestion[],
   desiredQuestionCount: number,
   sectionLimit: number,
-  topic: string
+  topic: string,
+  allowed: AiQuestionTypeOption[]
 ): NormalizedQuestion[] {
   const normalized: NormalizedQuestion[] = [];
   const allSections = sections || [];
@@ -152,7 +356,7 @@ function collectQuestionsFromSections(
       if (playableCount >= desiredQuestionCount || normalized.length >= totalSlots) {
         break;
       }
-      normalized.push(normalizeQuestion(question));
+      normalized.push(normalizeQuestion(question, allowed));
       playableCount += 1;
     }
   }
@@ -163,7 +367,7 @@ function collectQuestionsFromSections(
     if (playableCount >= desiredQuestionCount || normalized.length >= totalSlots) {
       break;
     }
-    normalized.push(normalizeQuestion(question));
+    normalized.push(normalizeQuestion(question, allowed));
     playableCount += 1;
   }
 
@@ -185,18 +389,21 @@ function collectQuestionsFromSections(
   // If we still don't have enough questions, pad with simple placeholders
   while (playableCount < desiredQuestionCount && normalized.length < totalSlots) {
     normalized.push(
-      normalizeQuestion({
-        questionText: `Review this ${topic} question before using live`,
-        questionType: "SINGLE_SELECT",
-        answers: [
-          { answerText: "Likely correct", isCorrect: true },
-          { answerText: "Probably incorrect", isCorrect: false },
-        ],
-        hint: "Confirm correctness before using live",
-        hostNotes: "AI could not supply enough unique questions.",
-        timeLimit: 30,
-        points: 100,
-      })
+      normalizeQuestion(
+        {
+          questionText: `Review this ${topic} question before using live`,
+          questionType: "MULTI_SELECT",
+          answers: [
+            { answerText: "Likely correct", isCorrect: true },
+            { answerText: "Probably incorrect", isCorrect: false },
+          ],
+          hint: "Confirm correctness before using live",
+          hostNotes: "AI could not supply enough unique questions.",
+          timeLimit: 30,
+          points: 100,
+        },
+        allowed
+      )
     );
     playableCount += 1;
   }
@@ -277,6 +484,13 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
   const topic = options.topic.trim() || "General Knowledge";
   const difficulty = options.difficulty || "medium";
 
+  // Resolve the question types the AI is allowed to produce. The provider uses
+  // this to bias its prompt; the normalizer uses it to coerce disallowed types.
+  const allowedTypes =
+    options.allowedQuestionTypes && options.allowedQuestionTypes.length > 0
+      ? options.allowedQuestionTypes
+      : DEFAULT_ALLOWED_TYPES;
+
   // Load Unsplash access key if configured
   const unsplashSetting = await prisma.setting.findUnique({
     where: { key: "unsplash_api_key" },
@@ -284,7 +498,7 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
   const unsplashAccessKey = unsplashSetting?.value || null;
 
   // Generate quiz content using the provider
-  const aiResponse = await provider.generateQuiz(options);
+  const aiResponse = await provider.generateQuiz({ ...options, allowedQuestionTypes: allowedTypes });
 
   // Normalize and enrich the AI response
   const normalizedQuestions = await addImagesToContent(
@@ -293,7 +507,8 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
       aiResponse.questions || [],
       questionCount,
       sectionCount,
-      topic
+      topic,
+      allowedTypes
     ),
     topic,
     unsplashAccessKey
@@ -321,27 +536,38 @@ export async function generateQuizWithAI(options: QuizGenerationOptions) {
       aiGenerated: true,
       sourceLanguage: resolvedSourceLanguage,
       questions: {
-        create: normalizedQuestions.map((question, index) => ({
-          questionText: question.questionText,
-          imageUrl: question.imageUrl,
-          hostNotes: question.hostNotes,
-          questionType: question.questionType,
-          timeLimit: question.timeLimit,
-          points: question.points,
-          orderIndex: index,
-          hint: question.hint,
-          answers:
-            question.questionType === "SECTION"
-              ? undefined
-              : {
-                  create: question.answers.map((answer, answerIndex) => ({
-                    answerText: answer.answerText,
-                    imageUrl: answer.imageUrl,
-                    isCorrect: answer.isCorrect,
-                    orderIndex: answerIndex,
-                  })),
-                },
-        })),
+        create: normalizedQuestions.map((question, index) => {
+          const isStructured =
+            question.questionType === "CATEGORISE" ||
+            question.questionType === "MATCHING";
+          return {
+            questionText: question.questionText,
+            imageUrl: question.imageUrl,
+            hostNotes: question.hostNotes,
+            questionType: question.questionType,
+            timeLimit: question.timeLimit,
+            points: question.points,
+            orderIndex: index,
+            hint: question.hint,
+            categoriseData: question.categoriseData
+              ? JSON.stringify(question.categoriseData)
+              : null,
+            matchingData: question.matchingData
+              ? JSON.stringify(question.matchingData)
+              : null,
+            answers:
+              question.questionType === "SECTION" || isStructured
+                ? undefined
+                : {
+                    create: question.answers.map((answer, answerIndex) => ({
+                      answerText: answer.answerText,
+                      imageUrl: answer.imageUrl,
+                      isCorrect: answer.isCorrect,
+                      orderIndex: answerIndex,
+                    })),
+                  },
+          };
+        }),
       },
     },
   });

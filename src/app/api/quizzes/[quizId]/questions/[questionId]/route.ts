@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import {
+  validateCategoriseData,
+  validateMatchingData,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 interface RouteParams {
   params: Promise<{ quizId: string; questionId: string }>;
@@ -23,6 +29,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       orderIndex,
       answers,
       hint,
+      categoriseData,
+      matchingData,
       easterEggEnabled,
       easterEggButtonText,
       easterEggUrl,
@@ -41,6 +49,44 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (orderIndex !== undefined) updateData.orderIndex = orderIndex;
     if (hint !== undefined) updateData.hint = hint?.trim() || null;
 
+    // Structured content for the extended question types.
+    // Validate when provided; clearing happens when null is passed for the
+    // opposite type (e.g. switching CATEGORISE -> SINGLE_SELECT).
+    const effectiveType = questionType !== undefined ? questionType : null;
+
+    if (categoriseData !== undefined) {
+      if (categoriseData === null) {
+        updateData.categoriseData = null;
+      } else {
+        const result = validateCategoriseData(categoriseData as CategoriseData);
+        if (!result.valid) {
+          return NextResponse.json(
+            { error: result.error || "Invalid categorise data" },
+            { status: 400 }
+          );
+        }
+        updateData.categoriseData = JSON.stringify(categoriseData);
+      }
+    }
+    if (matchingData !== undefined) {
+      if (matchingData === null) {
+        updateData.matchingData = null;
+      } else {
+        const result = validateMatchingData(matchingData as MatchingData);
+        if (!result.valid) {
+          return NextResponse.json(
+            { error: result.error || "Invalid matching data" },
+            { status: 400 }
+          );
+        }
+        updateData.matchingData = JSON.stringify(matchingData);
+      }
+    }
+
+    // When switching away from a structured type, clear the unused JSON field.
+    if (effectiveType && effectiveType !== "CATEGORISE") updateData.categoriseData = null;
+    if (effectiveType && effectiveType !== "MATCHING") updateData.matchingData = null;
+
     // Easter egg fields
     if (easterEggEnabled !== undefined) {
       updateData.easterEggEnabled = easterEggEnabled;
@@ -52,31 +98,39 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         (easterEggDisablesScoring ?? false) : false;
     }
 
-    // If answers are provided, update them
+    // If answers are provided, update them. For CATEGORISE/MATCHING the
+    // answers array is not used, so clear any existing answer rows.
+    const structuredType =
+      effectiveType === "CATEGORISE" || effectiveType === "MATCHING";
     if (answers && Array.isArray(answers)) {
       // Delete existing answers and create new ones
       await prisma.answer.deleteMany({
         where: { questionId },
       });
 
-      await prisma.answer.createMany({
-        data: answers.map(
-          (
-            answer: {
-              answerText: string;
-              imageUrl?: string;
-              isCorrect?: boolean;
-            },
-            index: number
-          ) => ({
-            questionId,
-            answerText: answer.answerText.trim(),
-            imageUrl: answer.imageUrl?.trim() || null,
-            isCorrect: answer.isCorrect ?? false,
-            orderIndex: index,
-          })
-        ),
-      });
+      if (!structuredType) {
+        await prisma.answer.createMany({
+          data: answers.map(
+            (
+              answer: {
+                answerText: string;
+                imageUrl?: string;
+                isCorrect?: boolean;
+              },
+              index: number
+            ) => ({
+              questionId,
+              answerText: answer.answerText.trim(),
+              imageUrl: answer.imageUrl?.trim() || null,
+              isCorrect: answer.isCorrect ?? false,
+              orderIndex: index,
+            })
+          ),
+        });
+      }
+    } else if (structuredType) {
+      // Switched to a structured type: drop legacy answer rows.
+      await prisma.answer.deleteMany({ where: { questionId } });
     }
 
     const question = await prisma.question.update({

@@ -156,7 +156,12 @@
     "you": "Du",
     "submitAnswer": "Antwort senden ({count} ausgewählt)",
     "clicked": "Geklickt!",
-    "waitingForTime": "Warte, bis die Zeit abläuft..."
+    "waitingForTime": "Warte, bis die Zeit abläuft...",
+    "categoriseAssignAll": "Alle Elemente einer Kategorie zuordnen zum Absenden",
+    "matchAllPairs": "Alle Paare zuordnen zum Absenden",
+    "selectMatch": "Zuordnung wählen",
+    "correctCategoryWas": "Richtige Kategorie",
+    "correctMatchWas": "Richtige Zuordnung"
   },
   "host": {
     "waitingForPlayers": "Warte auf Spieler",
@@ -236,7 +241,15 @@
     "emptyWaiting": "Wartet auf Status",
     "player": "Spieler",
     "upNext": "Als Nächstes",
-    "upNextQuestion": "Als Nächstes (F{current} von {total})"
+    "upNextQuestion": "Als Nächstes (F{current} von {total})",
+    "trueFalse": "Wahr/Falsch",
+    "categorise": "Zuordnen",
+    "matching": "Paare",
+    "correctCategory": "Richtige Kategorie",
+    "assignToCategory": "Einer Kategorie zuordnen",
+    "correctMatch": "Richtige Zuordnung",
+    "matchWith": "Mit Element verbinden",
+    "correct": "richtig"
   },
   "admin": {
     "quizzes": "Quiz",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "{name}-Übersetzung...",
       "deleteTranslation": "Übersetzung löschen",
       "title": "Titel",
-      "description": "Beschreibung"
-    }
+      "description": "Beschreibung",
+      "typeSingle": "Einzelauswahl",
+      "typeMulti": "Mehrfachauswahl",
+      "typeTrueFalse": "Wahr/Falsch",
+      "typeCategorise": "Zuordnen",
+      "typeMatching": "Paare",
+      "categories": "Kategorien",
+      "items": "Elemente",
+      "addCategory": "Kategorie hinzufügen",
+      "addItem": "Element hinzufügen",
+      "categoryN": "Kategorie {n}",
+      "itemN": "Element {n}",
+      "selectCategory": "Kategorie wählen",
+      "pairs": "Paare",
+      "addPair": "Paar hinzufügen",
+      "leftN": "Links {n}",
+      "rightN": "Rechts {n}",
+      "multiSelectHint": "Mehrere Antworten können als richtig markiert werden. Spieler erhalten Teilpunkte für jede richtige Antwort.",
+      "trueFalseHint": "Markiere entweder Wahr oder Falsch als richtige Antwort.",
+      "singleSelectHint": "Markiere genau eine Antwort als richtig.",
+      "categoriseHint": "Ordne jedes Element der richtigen Kategorie zu. Spieler erhalten Teilpunkte für jede richtige Zuordnung.",
+      "matchingHint": "Ordne jedes linke Element dem rechten Partner zu. Spieler erhalten Teilpunkte für jedes richtige Paar."
+    },
+    "categoriseInvalid": "Zuordnungsdaten sind unvollständig oder ungültig",
+    "matchingInvalid": "Zuweisungsdaten sind unvollständig oder ungültig"
   }
 }

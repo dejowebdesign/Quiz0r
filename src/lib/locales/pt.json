@@ -156,7 +156,12 @@
     "you": "Você",
     "submitAnswer": "Enviar resposta ({count} selecionada(s))",
     "clicked": "Clicado!",
-    "waitingForTime": "A aguardar que o tempo termine..."
+    "waitingForTime": "A aguardar que o tempo termine...",
+    "categoriseAssignAll": "Atribua cada item a uma categoria para enviar",
+    "matchAllPairs": "Corresponda todos os pares para enviar",
+    "selectMatch": "Selecionar correspondência",
+    "correctCategoryWas": "Categoria correta",
+    "correctMatchWas": "Correspondência correta"
   },
   "host": {
     "waitingForPlayers": "A aguardar jogadores",
@@ -236,7 +241,15 @@
     "emptyWaiting": "A aguardar estado",
     "player": "Jogador",
     "upNext": "A seguir",
-    "upNextQuestion": "A seguir (P{current} de {total})"
+    "upNextQuestion": "A seguir (P{current} de {total})",
+    "trueFalse": "Verdadeiro/Falso",
+    "categorise": "Categorizar",
+    "matching": "Corresponder",
+    "correctCategory": "Categoria correta",
+    "assignToCategory": "Atribuir a uma categoria",
+    "correctMatch": "Correspondência correta",
+    "matchWith": "Corresponder a um item",
+    "correct": "correto"
   },
   "admin": {
     "quizzes": "Quizzes",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "Tradução para {name}...",
       "deleteTranslation": "Eliminar tradução",
       "title": "Título",
-      "description": "Descrição"
-    }
+      "description": "Descrição",
+      "typeSingle": "Única",
+      "typeMulti": "Múltipla",
+      "typeTrueFalse": "Verdadeiro/Falso",
+      "typeCategorise": "Categorizar",
+      "typeMatching": "Corresponder",
+      "categories": "Categorias",
+      "items": "Itens",
+      "addCategory": "Adicionar categoria",
+      "addItem": "Adicionar item",
+      "categoryN": "Categoria {n}",
+      "itemN": "Item {n}",
+      "selectCategory": "Selecionar categoria",
+      "pairs": "Pares",
+      "addPair": "Adicionar par",
+      "leftN": "Esquerda {n}",
+      "rightN": "Direita {n}",
+      "multiSelectHint": "Várias respostas podem ser marcadas como corretas. Os jogadores recebem crédito parcial por cada resposta correta.",
+      "trueFalseHint": "Marque Verdadeiro ou Falso como resposta correta.",
+      "singleSelectHint": "Marque exatamente uma resposta como correta.",
+      "categoriseHint": "Atribua cada item à categoria correta. Os jogadores recebem crédito parcial por cada atribuição correta.",
+      "matchingHint": "Corresponda cada item esquerdo ao direito correto. Os jogadores recebem crédito parcial por cada par correto."
+    },
+    "categoriseInvalid": "Os dados de categorização estão incompletos ou inválidos",
+    "matchingInvalid": "Os dados de correspondência estão incompletos ou inválidos"
   }
 }

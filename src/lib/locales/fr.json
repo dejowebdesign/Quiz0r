@@ -156,7 +156,12 @@
     "you": "Vous",
     "submitAnswer": "Envoyer la réponse ({count} sélectionnée(s))",
     "clicked": "Cliqué !",
-    "waitingForTime": "En attente de la fin du temps..."
+    "waitingForTime": "En attente de la fin du temps...",
+    "categoriseAssignAll": "Associe chaque élément à une catégorie pour envoyer",
+    "matchAllPairs": "Associe toutes les paires pour envoyer",
+    "selectMatch": "Choisir une association",
+    "correctCategoryWas": "Catégorie correcte",
+    "correctMatchWas": "Association correcte"
   },
   "host": {
     "waitingForPlayers": "En attente de joueurs",
@@ -236,7 +241,15 @@
     "emptyWaiting": "En attente d'état",
     "player": "Joueur",
     "upNext": "À suivre",
-    "upNextQuestion": "À suivre (Q{current} sur {total})"
+    "upNextQuestion": "À suivre (Q{current} sur {total})",
+    "trueFalse": "Vrai/Faux",
+    "categorise": "Catégoriser",
+    "matching": "Associer",
+    "correctCategory": "Catégorie correcte",
+    "assignToCategory": "Associer à une catégorie",
+    "correctMatch": "Association correcte",
+    "matchWith": "Associer à un élément",
+    "correct": "correct"
   },
   "admin": {
     "quizzes": "Quiz",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "Traduction en {name}...",
       "deleteTranslation": "Supprimer la traduction",
       "title": "Titre",
-      "description": "Description"
-    }
+      "description": "Description",
+      "typeSingle": "Unique",
+      "typeMulti": "Multiple",
+      "typeTrueFalse": "Vrai/Faux",
+      "typeCategorise": "Catégoriser",
+      "typeMatching": "Associer",
+      "categories": "Catégories",
+      "items": "Éléments",
+      "addCategory": "Ajouter une catégorie",
+      "addItem": "Ajouter un élément",
+      "categoryN": "Catégorie {n}",
+      "itemN": "Élément {n}",
+      "selectCategory": "Choisir une catégorie",
+      "pairs": "Paires",
+      "addPair": "Ajouter une paire",
+      "leftN": "Gauche {n}",
+      "rightN": "Droite {n}",
+      "multiSelectHint": "Plusieurs réponses peuvent être marquées comme correctes. Les joueurs reçoivent un crédit partiel pour chaque réponse correcte.",
+      "trueFalseHint": "Marque Vrai ou Faux comme bonne réponse.",
+      "singleSelectHint": "Marque exactement une réponse comme correcte.",
+      "categoriseHint": "Associe chaque élément à la bonne catégorie. Les joueurs reçoivent un crédit partiel pour chaque bonne attribution.",
+      "matchingHint": "Associe chaque élément de gauche à son correspondant de droite. Les joueurs reçoivent un crédit partiel pour chaque paire correcte."
+    },
+    "categoriseInvalid": "Les données de catégorisation sont incomplètes ou invalides",
+    "matchingInvalid": "Les données d'association sont incomplètes ou invalides"
   }
 }

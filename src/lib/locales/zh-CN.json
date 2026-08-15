@@ -156,7 +156,12 @@
     "you": "您",
     "submitAnswer": "提交答案（已选 {count} 项）",
     "clicked": "已点击！",
-    "waitingForTime": "等待时间结束..."
+    "waitingForTime": "等待时间结束...",
+    "categoriseAssignAll": "将所有条目分配到类别后提交",
+    "matchAllPairs": "配对所有条目后提交",
+    "selectMatch": "选择配对",
+    "correctCategoryWas": "正确类别",
+    "correctMatchWas": "正确配对"
   },
   "host": {
     "waitingForPlayers": "等待玩家",
@@ -236,7 +241,15 @@
     "emptyWaiting": "等待状态",
     "player": "玩家",
     "upNext": "下一个",
-    "upNextQuestion": "下一个 (Q{current}/{total})"
+    "upNextQuestion": "下一个 (Q{current}/{total})",
+    "trueFalse": "判断",
+    "categorise": "分类",
+    "matching": "配对",
+    "correctCategory": "正确类别",
+    "assignToCategory": "分配到类别",
+    "correctMatch": "正确配对",
+    "matchWith": "与条目配对",
+    "correct": "正确"
   },
   "admin": {
     "quizzes": "测验",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "{name}翻译...",
       "deleteTranslation": "删除翻译",
       "title": "标题",
-      "description": "描述"
-    }
+      "description": "描述",
+      "typeSingle": "单选",
+      "typeMulti": "多选",
+      "typeTrueFalse": "判断",
+      "typeCategorise": "分类",
+      "typeMatching": "配对",
+      "categories": "类别",
+      "items": "条目",
+      "addCategory": "添加类别",
+      "addItem": "添加条目",
+      "categoryN": "类别 {n}",
+      "itemN": "条目 {n}",
+      "selectCategory": "选择类别",
+      "pairs": "配对",
+      "addPair": "添加配对",
+      "leftN": "左 {n}",
+      "rightN": "右 {n}",
+      "multiSelectHint": "可将多个答案标记为正确。玩家每个正确答案获得部分分。",
+      "trueFalseHint": "将“正确”或“错误”标记为正确答案。",
+      "singleSelectHint": "仅标记一个答案为正确。",
+      "categoriseHint": "将每个条目分配到正确的类别。玩家每个正确分配获得部分分。",
+      "matchingHint": "将每个左侧条目与正确的右侧条目配对。玩家每个正确配对获得部分分。"
+    },
+    "categoriseInvalid": "分类数据不完整或无效",
+    "matchingInvalid": "配对数据不完整或无效"
   }
 }

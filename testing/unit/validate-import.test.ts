@@ -43,4 +43,137 @@ describe("validateQuizStructure", () => {
     expect(result.valid).toBe(false);
     expect(result.error).toContain("invalid question type");
   });
+
+  it("accepts a TRUE_FALSE question with exactly two answers", () => {
+    const tf = {
+      ...baseQuiz,
+      questions: [
+        {
+          questionText: "The sky is blue",
+          questionType: "TRUE_FALSE",
+          timeLimit: 20,
+          points: 100,
+          orderIndex: 0,
+          answers: [
+            { id: "t", answerText: "True", isCorrect: true, orderIndex: 0 },
+            { id: "f", answerText: "False", isCorrect: false, orderIndex: 1 },
+          ],
+        },
+      ],
+    };
+    const result = validateQuizStructure(tf);
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects TRUE_FALSE with wrong answer count", () => {
+    const tf = {
+      ...baseQuiz,
+      questions: [
+        {
+          questionText: "TF",
+          questionType: "TRUE_FALSE",
+          timeLimit: 20,
+          points: 100,
+          orderIndex: 0,
+          answers: [
+            { id: "t", answerText: "True", isCorrect: true, orderIndex: 0 },
+          ],
+        },
+      ],
+    };
+    const result = validateQuizStructure(tf);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("TRUE_FALSE must have exactly 2 answers");
+  });
+
+  it("accepts a CATEGORISE question with valid categoriseData", () => {
+    const cat = {
+      ...baseQuiz,
+      questions: [
+        {
+          questionText: "Sort the items",
+          questionType: "CATEGORISE",
+          timeLimit: 45,
+          points: 100,
+          orderIndex: 0,
+          answers: [],
+          categoriseData: {
+            categories: [
+              { id: "c1", label: "Animals" },
+              { id: "c2", label: "Vehicles" },
+            ],
+            items: [
+              { id: "i1", label: "Dog", categoryId: "c1" },
+              { id: "i2", label: "Car", categoryId: "c2" },
+            ],
+          },
+        },
+      ],
+    };
+    const result = validateQuizStructure(cat);
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects CATEGORISE without categoriseData", () => {
+    const cat = {
+      ...baseQuiz,
+      questions: [
+        {
+          questionText: "Sort",
+          questionType: "CATEGORISE",
+          timeLimit: 45,
+          points: 100,
+          orderIndex: 0,
+          answers: [],
+        },
+      ],
+    };
+    const result = validateQuizStructure(cat);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("CATEGORISE requires categoriseData");
+  });
+
+  it("accepts a MATCHING question with valid matchingData", () => {
+    const match = {
+      ...baseQuiz,
+      questions: [
+        {
+          questionText: "Match capitals",
+          questionType: "MATCHING",
+          timeLimit: 45,
+          points: 100,
+          orderIndex: 0,
+          answers: [],
+          matchingData: {
+            pairs: [
+              { leftId: "l1", leftLabel: "France", rightId: "r1", rightLabel: "Paris" },
+              { leftId: "l2", leftLabel: "Japan", rightId: "r2", rightLabel: "Tokyo" },
+            ],
+          },
+        },
+      ],
+    };
+    const result = validateQuizStructure(match);
+    expect(result.valid).toBe(true);
+  });
+
+  it("rejects MATCHING with invalid matchingData", () => {
+    const match = {
+      ...baseQuiz,
+      questions: [
+        {
+          questionText: "Match",
+          questionType: "MATCHING",
+          timeLimit: 45,
+          points: 100,
+          orderIndex: 0,
+          answers: [],
+          matchingData: { pairs: [{ leftId: "l1", leftLabel: "A", rightId: "r1", rightLabel: "B" }] },
+        },
+      ],
+    };
+    const result = validateQuizStructure(match);
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("At least 2 pairs");
+  });
 });

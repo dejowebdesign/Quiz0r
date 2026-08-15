@@ -135,6 +135,8 @@ export async function POST(request: NextRequest) {
             points: q.points,
             orderIndex: q.orderIndex,
             hint: q.hint || null,
+            categoriseData: q.categoriseData ? JSON.stringify(q.categoriseData) : null,
+            matchingData: q.matchingData ? JSON.stringify(q.matchingData) : null,
             easterEggEnabled: q.easterEggEnabled ?? false,
             easterEggButtonText: q.easterEggEnabled ? q.easterEggButtonText : null,
             easterEggUrl: q.easterEggEnabled ? q.easterEggUrl : null,
@@ -146,6 +148,13 @@ export async function POST(request: NextRequest) {
                 hostNotes: t.hostNotes || null,
                 hint: t.hint || null,
                 easterEggButtonText: t.easterEggButtonText || null,
+                isAutoTranslated: false,
+              })),
+            } : undefined,
+            contentTranslations: q.contentTranslations && q.contentTranslations.length > 0 ? {
+              create: q.contentTranslations.map((t) => ({
+                languageCode: t.languageCode,
+                contentData: t.contentData,
                 isAutoTranslated: false,
               })),
             } : undefined,

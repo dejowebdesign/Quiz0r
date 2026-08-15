@@ -46,6 +46,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { SupportedLanguages, type LanguageCode } from "@/types";
+import {
+  newLocalId,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 interface Answer {
   id?: string;
@@ -89,6 +94,11 @@ interface QuestionEditorDialogProps {
   setPoints: (value: number) => void;
   answers: Answer[];
   setAnswers: (value: Answer[]) => void;
+  // Structured content for CATEGORISE / MATCHING questions.
+  categoriseData: CategoriseData;
+  setCategoriseData: (value: CategoriseData) => void;
+  matchingData: MatchingData;
+  setMatchingData: (value: MatchingData) => void;
 
   // Easter egg state
   easterEggEnabled: boolean;
@@ -156,6 +166,10 @@ export function QuestionEditorDialog({
   setPoints,
   answers,
   setAnswers,
+  categoriseData,
+  setCategoriseData,
+  matchingData,
+  setMatchingData,
 
   easterEggEnabled,
   setEasterEggEnabled,
@@ -230,11 +244,107 @@ export function QuestionEditorDialog({
   // Validation
   const validAnswers = answers.filter((a) => a.answerText.trim());
   const hasValidQuestion = questionText.trim().length > 0;
+  const isStructuredType =
+    questionType === "CATEGORISE" || questionType === "MATCHING";
+  const isAnswerType =
+    questionType === "SINGLE_SELECT" ||
+    questionType === "MULTI_SELECT" ||
+    questionType === "TRUE_FALSE";
   const hasEnoughAnswers = validAnswers.length >= 2;
   const hasCorrectAnswer = validAnswers.some((a) => a.isCorrect);
+
+  // Structured-content validation for CATEGORISE/MATCHING.
+  const validCategories = categoriseData.categories.filter((c) => c.label.trim());
+  const validItems = categoriseData.items.filter(
+    (i) => i.label.trim() && i.categoryId
+  );
+  const categoriseValid =
+    validCategories.length >= 2 && validItems.length >= 2;
+  const validPairs = matchingData.pairs.filter(
+    (p) => p.leftLabel.trim() && p.rightLabel.trim()
+  );
+  const matchingValid = validPairs.length >= 2;
+
   const hasRequiredHint = !hintRequired || hint.trim().length > 0;
   const canSave =
-    hasValidQuestion && hasEnoughAnswers && hasCorrectAnswer && hasRequiredHint;
+    hasValidQuestion &&
+    hasRequiredHint &&
+    (isStructuredType
+      ? questionType === "CATEGORISE"
+        ? categoriseValid
+        : matchingValid
+      : hasEnoughAnswers && hasCorrectAnswer);
+
+  // --- CATEGORISE editor helpers ---
+  const addCategory = () => {
+    setCategoriseData({
+      ...categoriseData,
+      categories: [...categoriseData.categories, { id: newLocalId("cat"), label: "" }],
+    });
+  };
+  const updateCategory = (index: number, label: string) => {
+    const next = [...categoriseData.categories];
+    next[index] = { ...next[index], label };
+    setCategoriseData({ ...categoriseData, categories: next });
+  };
+  const removeCategory = (index: number) => {
+    if (categoriseData.categories.length <= 2) return;
+    const removedId = categoriseData.categories[index].id;
+    setCategoriseData({
+      categories: categoriseData.categories.filter((_, i) => i !== index),
+      items: categoriseData.items.map((i) =>
+        i.categoryId === removedId ? { ...i, categoryId: "" } : i
+      ),
+    });
+  };
+  const addItem = () => {
+    setCategoriseData({
+      ...categoriseData,
+      items: [...categoriseData.items, { id: newLocalId("item"), label: "", categoryId: "" }],
+    });
+  };
+  const updateItem = (index: number, field: "label" | "categoryId", value: string) => {
+    const next = [...categoriseData.items];
+    next[index] = { ...next[index], [field]: value };
+    setCategoriseData({ ...categoriseData, items: next });
+  };
+  const removeItem = (index: number) => {
+    if (categoriseData.items.length <= 2) return;
+    setCategoriseData({
+      ...categoriseData,
+      items: categoriseData.items.filter((_, i) => i !== index),
+    });
+  };
+
+  // --- MATCHING editor helpers ---
+  const addPair = () => {
+    setMatchingData({
+      pairs: [
+        ...matchingData.pairs,
+        {
+          leftId: newLocalId("left"),
+          leftLabel: "",
+          rightId: newLocalId("right"),
+          rightLabel: "",
+        },
+      ],
+    });
+  };
+  const updatePair = (
+    index: number,
+    field: "leftLabel" | "rightLabel",
+    value: string
+  ) => {
+    const next = [...matchingData.pairs];
+    next[index] = { ...next[index], [field]: value };
+    setMatchingData({ pairs: next });
+  };
+  const removePair = (index: number) => {
+    if (matchingData.pairs.length <= 2) return;
+    setMatchingData({
+      pairs: matchingData.pairs.filter((_, i) => i !== index),
+    });
+  };
 
   return (
     <Dialog open={open ?? false} onOpenChange={onOpenChange}>
@@ -422,31 +532,26 @@ export function QuestionEditorDialog({
 
             {/* Section 2: Type + Time/Points */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-2">
                 <Label>{t("editor.fields.type")}</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={
-                      questionType === "SINGLE_SELECT" ? "default" : "outline"
-                    }
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => setQuestionType("SINGLE_SELECT")}
-                  >
-                    Single
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={
-                      questionType === "MULTI_SELECT" ? "default" : "outline"
-                    }
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => setQuestionType("MULTI_SELECT")}
-                  >
-                    Multi
-                  </Button>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: "SINGLE_SELECT", label: t("editor.fields.typeSingle") },
+                    { value: "MULTI_SELECT", label: t("editor.fields.typeMulti") },
+                    { value: "TRUE_FALSE", label: t("editor.fields.typeTrueFalse") },
+                    { value: "CATEGORISE", label: t("editor.fields.typeCategorise") },
+                    { value: "MATCHING", label: t("editor.fields.typeMatching") },
+                  ] as const).map((opt) => (
+                    <Button
+                      key={opt.value}
+                      type="button"
+                      variant={questionType === opt.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setQuestionType(opt.value)}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
                 </div>
               </div>
 
@@ -462,7 +567,7 @@ export function QuestionEditorDialog({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-3 sm:col-span-1">
                 <Label htmlFor="points">{t("editor.fields.points")}</Label>
                 <Input
                   id="points"
@@ -476,86 +581,239 @@ export function QuestionEditorDialog({
               </div>
             </div>
 
-            {/* Section 3: Answers */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>
-                  Answers <span className="text-destructive">*</span>
-                  {!hasEnoughAnswers && (
-                    <span className="text-xs text-destructive ml-2">
-                      {t("editor.fields.minRequired")}
-                    </span>
+            {/* Section 3: Answers OR structured content, depending on type */}
+            {isAnswerType ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>
+                    {t("editor.fields.answers")} <span className="text-destructive">*</span>
+                    {!hasEnoughAnswers && (
+                      <span className="text-xs text-destructive ml-2">
+                        {t("editor.fields.minRequired")}
+                      </span>
+                    )}
+                    {hasEnoughAnswers && !hasCorrectAnswer && (
+                      <span className="text-xs text-destructive ml-2">
+                        {t("editor.fields.markCorrect")}
+                      </span>
+                    )}
+                  </Label>
+                  {questionType !== "TRUE_FALSE" && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addAnswer}
+                      disabled={answers.length >= 6}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      {t("editor.fields.add")}
+                    </Button>
                   )}
-                  {hasEnoughAnswers && !hasCorrectAnswer && (
-                    <span className="text-xs text-destructive ml-2">
-                      {t("editor.fields.markCorrect")}
-                    </span>
-                  )}
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addAnswer}
-                  disabled={answers.length >= 6}
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  {t("editor.fields.add")}
-                </Button>
-              </div>
+                </div>
 
-              <div className="space-y-2">
-                {answers.map((answer, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="space-y-2">
+                  {answers.map((answer, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <Input
+                        placeholder={t("editor.fields.answerN", { n: index + 1 })}
+                        value={answer.answerText}
+                        onChange={(e) =>
+                          updateAnswer(index, "answerText", e.target.value)
+                        }
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant={answer.isCorrect ? "default" : "outline"}
+                        size="icon"
+                        className={`h-9 w-9 shrink-0 ${
+                          answer.isCorrect
+                            ? "bg-green-600 hover:bg-green-700"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          updateAnswer(index, "isCorrect", !answer.isCorrect)
+                        }
+                      >
+                        {answer.isCorrect ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
+                      </Button>
+                      {questionType !== "TRUE_FALSE" && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAnswer(index)}
+                          disabled={answers.length <= 2}
+                          className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {questionType === "MULTI_SELECT" && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("editor.fields.multiSelectHint")}
+                  </p>
+                )}
+                {questionType === "TRUE_FALSE" && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("editor.fields.trueFalseHint")}
+                  </p>
+                )}
+                {questionType === "SINGLE_SELECT" && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("editor.fields.singleSelectHint")}
+                  </p>
+                )}
+              </div>
+            ) : questionType === "CATEGORISE" ? (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      {t("editor.fields.categories")} <span className="text-destructive">*</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addCategory}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      {t("editor.fields.addCategory")}
+                    </Button>
+                  </div>
+                  {categoriseData.categories.map((category, index) => (
+                    <div key={category.id} className="flex items-center gap-2">
+                      <Input
+                        placeholder={t("editor.fields.categoryN", { n: index + 1 })}
+                        value={category.label}
+                        onChange={(e) => updateCategory(index, e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeCategory(index)}
+                        disabled={categoriseData.categories.length <= 2}
+                        className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>
+                      {t("editor.fields.items")} <span className="text-destructive">*</span>
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addItem}
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      {t("editor.fields.addItem")}
+                    </Button>
+                  </div>
+                  {categoriseData.items.map((item, index) => (
+                    <div key={item.id} className="flex items-center gap-2">
+                      <Input
+                        placeholder={t("editor.fields.itemN", { n: index + 1 })}
+                        value={item.label}
+                        onChange={(e) => updateItem(index, "label", e.target.value)}
+                        className="flex-1"
+                      />
+                      <select
+                        value={item.categoryId}
+                        onChange={(e) => updateItem(index, "categoryId", e.target.value)}
+                        className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                      >
+                        <option value="">{t("editor.fields.selectCategory")}</option>
+                        {categoriseData.categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.label || c.id}
+                          </option>
+                        ))}
+                      </select>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(index)}
+                        disabled={categoriseData.items.length <= 2}
+                        className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("editor.fields.categoriseHint")}
+                </p>
+              </div>
+            ) : questionType === "MATCHING" ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>
+                    {t("editor.fields.pairs")} <span className="text-destructive">*</span>
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPair}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    {t("editor.fields.addPair")}
+                  </Button>
+                </div>
+                {matchingData.pairs.map((pair, index) => (
+                  <div key={pair.leftId} className="flex items-center gap-2">
                     <Input
-                      placeholder={t("editor.fields.answerN", { n: index + 1 })}
-                      value={answer.answerText}
-                      onChange={(e) =>
-                        updateAnswer(index, "answerText", e.target.value)
-                      }
+                      placeholder={t("editor.fields.leftN", { n: index + 1 })}
+                      value={pair.leftLabel}
+                      onChange={(e) => updatePair(index, "leftLabel", e.target.value)}
+                      className="flex-1"
+                    />
+                    <span className="text-muted-foreground text-sm px-1">↔</span>
+                    <Input
+                      placeholder={t("editor.fields.rightN", { n: index + 1 })}
+                      value={pair.rightLabel}
+                      onChange={(e) => updatePair(index, "rightLabel", e.target.value)}
                       className="flex-1"
                     />
                     <Button
                       type="button"
-                      variant={answer.isCorrect ? "default" : "outline"}
-                      size="icon"
-                      className={`h-9 w-9 shrink-0 ${
-                        answer.isCorrect
-                          ? "bg-green-600 hover:bg-green-700"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        updateAnswer(index, "isCorrect", !answer.isCorrect)
-                      }
-                    >
-                      {answer.isCorrect ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <X className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => removeAnswer(index)}
-                      disabled={answers.length <= 2}
+                      onClick={() => removePair(index)}
+                      disabled={matchingData.pairs.length <= 2}
                       className="h-9 w-9 shrink-0 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
-              </div>
-
-              {questionType === "MULTI_SELECT" && (
                 <p className="text-xs text-muted-foreground">
-                  Multiple answers can be marked as correct. Players get partial
-                  credit for each correct answer selected.
+                  {t("editor.fields.matchingHint")}
                 </p>
-              )}
-            </div>
+              </div>
+            ) : null}
 
             {/* Section 4: Host Notes + Hint */}
             <div className="space-y-4">

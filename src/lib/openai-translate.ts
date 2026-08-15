@@ -2,6 +2,12 @@ import { prisma } from "@/lib/db";
 import { SupportedLanguages, type LanguageCode } from "@/types";
 import { getConfiguredProvider } from "@/lib/ai-provider";
 import { resolveSourceLanguage } from "@/lib/source-language";
+import {
+  parseCategoriseData,
+  parseMatchingData,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 interface TranslationRequest {
   questionText: string;
@@ -24,6 +30,24 @@ interface TranslationResponse {
     answerText: string;
   }>;
 }
+
+/**
+ * Structured-content translation request: only labels are translated; ids and
+ * the categoryId/rightId mapping are preserved verbatim so the translated
+ * content stays structurally compatible with the source.
+ */
+interface CategoriseContentRequest {
+  categories: Array<{ id: string; label: string }>;
+  items: Array<{ id: string; label: string; categoryId: string }>;
+}
+
+interface MatchingContentRequest {
+  pairs: Array<{ leftId: string; leftLabel: string; rightId: string; rightLabel: string }>;
+}
+
+type ContentTranslationRequest =
+  | { type: "CATEGORISE"; data: CategoriseContentRequest }
+  | { type: "MATCHING"; data: MatchingContentRequest };
 
 interface SectionTranslationRequest {
   title: string;
@@ -74,6 +98,108 @@ async function resolveQuestionSourceLanguage(questionId: string): Promise<Langua
 }
 
 /**
+ * Translate the structured content of a CATEGORISE or MATCHING question to the
+ * target language and persist it as a QuestionContentTranslation row. Only the
+ * human-readable labels are translated; ids and the categoryId/rightId mapping
+ * are preserved so the translated structure is structurally identical to the
+ * source. Returns the translated content JSON string, or null if nothing to
+ * translate or translation failed.
+ */
+async function translateStructuredContent(
+  questionId: string,
+  questionType: string,
+  categoriseData: CategoriseData | null,
+  matchingData: MatchingData | null,
+  targetLanguage: LanguageCode,
+  sourceLanguage: LanguageCode
+): Promise<string | null> {
+  const provider = await getProvider();
+  const sourceInfo = SupportedLanguages[sourceLanguage];
+  const targetName = languagePromptName(targetLanguage);
+
+  let request: ContentTranslationRequest | null = null;
+  if (questionType === "CATEGORISE" && categoriseData) {
+    request = {
+      type: "CATEGORISE",
+      data: {
+        categories: categoriseData.categories.map((c) => ({ id: c.id, label: c.label })),
+        items: categoriseData.items.map((i) => ({
+          id: i.id,
+          label: i.label,
+          categoryId: i.categoryId,
+        })),
+      },
+    };
+  } else if (questionType === "MATCHING" && matchingData) {
+    request = {
+      type: "MATCHING",
+      data: {
+        pairs: matchingData.pairs.map((p) => ({
+          leftId: p.leftId,
+          leftLabel: p.leftLabel,
+          rightId: p.rightId,
+          rightLabel: p.rightLabel,
+        })),
+      },
+    };
+  }
+
+  if (!request) return null;
+
+  const systemPrompt = `You are a professional translator for educational quiz content.
+Translate from ${sourceInfo.name} (${sourceInfo.nativeName}) to ${targetName}.
+
+CRITICAL RULES:
+1. Maintain EXACT JSON structure
+2. Only translate the "label", "leftLabel" and "rightLabel" text values — never translate or modify ids, categoryId, leftId, rightId
+3. Preserve the exact pairing/category mapping (do not reorder or reassign)
+4. Return ONLY valid JSON with no markdown formatting or code blocks
+5. The target language is ${targetName}; write the output in that language and script only.`;
+
+  const responseText = await provider.generateText({
+    systemPrompt,
+    userPrompt: `Translate the structured content of this ${request.type} question to ${targetName}. Translate only the label fields; keep all ids and mappings unchanged:\n\n${JSON.stringify(request.data, null, 2)}`,
+    jsonMode: true,
+    temperature: 0.3,
+  });
+
+  if (!responseText) return null;
+
+  // Validate that the response preserves the structural mapping before saving.
+  const parsed = JSON.parse(responseText);
+  if (request.type === "CATEGORISE") {
+    const src = request.data as CategoriseContentRequest;
+    if (
+      !Array.isArray(parsed.categories) ||
+      parsed.categories.length !== src.categories.length
+    ) {
+      return null;
+    }
+    // Ensure each category id is present and the item->category mapping is intact.
+    const srcItemMap = new Map(src.items.map((i) => [i.id, i.categoryId]));
+    const translatedItems = Array.isArray(parsed.items) ? parsed.items : [];
+    for (const item of translatedItems) {
+      if (!srcItemMap.has(item.id) || item.categoryId !== srcItemMap.get(item.id)) {
+        return null;
+      }
+    }
+  } else {
+    const src = request.data as MatchingContentRequest;
+    if (!Array.isArray(parsed.pairs) || parsed.pairs.length !== src.pairs.length) {
+      return null;
+    }
+    const srcPairMap = new Map(src.pairs.map((p) => [p.leftId, p.rightId]));
+    for (const pair of parsed.pairs) {
+      if (!srcPairMap.has(pair.leftId) || pair.rightId !== srcPairMap.get(pair.leftId)) {
+        return null;
+      }
+    }
+  }
+
+  return JSON.stringify(parsed);
+}
+
+/**
  * Translate a single question to a target language using the configured AI provider
  * @param questionId - The question ID to translate
  * @param targetLanguage - The target language code (e.g., 'es', 'fr')
@@ -104,16 +230,23 @@ export async function translateQuestion(
     // Resolve the actual source language of this quiz's content
     const sourceLanguage = await resolveQuestionSourceLanguage(questionId);
 
+    // For answer-option types (SINGLE/MULTI/TRUE_FALSE), translate the answers.
+    // For TRUE_FALSE, treat exactly like a single-select translation (two options).
+    const isStructuredType =
+      question.questionType === "CATEGORISE" || question.questionType === "MATCHING";
+
     // Prepare translation request
     const request: TranslationRequest = {
       questionText: question.questionText,
       hint: question.hint,
       hostNotes: question.hostNotes,
       easterEggButtonText: question.easterEggButtonText,
-      answers: question.answers.map((a) => ({
-        id: a.id,
-        answerText: a.answerText,
-      })),
+      answers: isStructuredType
+        ? []
+        : question.answers.map((a) => ({
+            id: a.id,
+            answerText: a.answerText,
+          })),
     };
 
     const sourceInfo = SupportedLanguages[sourceLanguage];
@@ -193,6 +326,40 @@ CRITICAL RULES:
             answerId: originalAnswer.id,
             languageCode: targetLanguage,
             answerText: translatedAnswer.answerText,
+            isAutoTranslated: true,
+          },
+        });
+      }
+    }
+
+    // For CATEGORISE/MATCHING, translate the structured labels and persist them
+    // as a QuestionContentTranslation row alongside the question translation.
+    if (isStructuredType) {
+      const translatedContent = await translateStructuredContent(
+        questionId,
+        question.questionType,
+        parseCategoriseData(question.categoriseData),
+        parseMatchingData(question.matchingData),
+        targetLanguage,
+        sourceLanguage
+      );
+      if (translatedContent) {
+        await prisma.questionContentTranslation.upsert({
+          where: {
+            questionId_languageCode: {
+              questionId: questionId,
+              languageCode: targetLanguage,
+            },
+          },
+          update: {
+            contentData: translatedContent,
+            isAutoTranslated: true,
+            updatedAt: new Date(),
+          },
+          create: {
+            questionId: questionId,
+            languageCode: targetLanguage,
+            contentData: translatedContent,
             isAutoTranslated: true,
           },
         });
@@ -434,6 +601,7 @@ export async function getQuizTranslationStatus(quizId: string): Promise<
       include: {
         answers: true,
         translations: true,
+        contentTranslations: true,
       },
     });
 
@@ -476,6 +644,17 @@ export async function getQuizTranslationStatus(quizId: string): Promise<
 
       // Answer texts
       totalFieldsPerLanguage += question.answers.length;
+
+      // Structured-content labels for CATEGORISE/MATCHING (each label counts).
+      const categoriseSource = parseCategoriseData(question.categoriseData);
+      const matchingSource = parseMatchingData(question.matchingData);
+      if (categoriseSource) {
+        totalFieldsPerLanguage += categoriseSource.categories.length;
+        totalFieldsPerLanguage += categoriseSource.items.length;
+      }
+      if (matchingSource) {
+        totalFieldsPerLanguage += matchingSource.pairs.length * 2; // left + right
+      }
     }
 
     // Build status for each supported language (excluding the source language)
@@ -538,12 +717,51 @@ export async function getQuizTranslationStatus(quizId: string): Promise<
                 translatedFields += 1;
               }
             }
+
+            // Structured-content label translations (CATEGORISE/MATCHING).
+            const categoriseSource = parseCategoriseData(question.categoriseData);
+            const matchingSource = parseMatchingData(question.matchingData);
+            if (categoriseSource || matchingSource) {
+              const contentTranslation = question.contentTranslations.find(
+                (t) => t.languageCode === languageCode
+              );
+              if (contentTranslation && contentTranslation.contentData) {
+                try {
+                  const content = JSON.parse(contentTranslation.contentData);
+                  if (categoriseSource) {
+                    const translatedCats = Array.isArray(content.categories) ? content.categories : [];
+                    const translatedItems = Array.isArray(content.items) ? content.items : [];
+                    // Count only non-empty translated labels for fields that exist.
+                    translatedFields += translatedCats.filter(
+                      (c: { label?: string }) => c.label && c.label.trim()
+                    ).length;
+                    translatedFields += translatedItems.filter(
+                      (i: { label?: string }) => i.label && i.label.trim()
+                    ).length;
+                  }
+                  if (matchingSource) {
+                    const translatedPairs = Array.isArray(content.pairs) ? content.pairs : [];
+                    translatedFields += translatedPairs.filter(
+                      (p: { leftLabel?: string; rightLabel?: string }) =>
+                        p.leftLabel && p.leftLabel.trim() && p.rightLabel && p.rightLabel.trim()
+                    ).length * 2; // left + right
+                  }
+                } catch {
+                  // malformed content translation: count nothing
+                }
+              }
+            }
           }
 
           // Find most recent update
           const allTranslations = [
             ...questionTranslations.map((t) => t.updatedAt),
             ...answerTranslations.map((t) => t.updatedAt),
+            ...questions.flatMap((q) =>
+              q.contentTranslations
+                .filter((t) => t.languageCode === languageCode)
+                .map((t) => t.updatedAt)
+            ),
           ];
           const lastUpdated = allTranslations.length > 0
             ? new Date(Math.max(...allTranslations.map((d) => d.getTime()))).toISOString()

@@ -158,7 +158,12 @@
     "you": "Ви",
     "submitAnswer": "Пошаљи одговор ({цоунт} изабрано)",
     "clicked": "Кликнуто!",
-    "waitingForTime": "Чека се да време истекне..."
+    "waitingForTime": "Чека се да време истекне...",
+    "categoriseAssignAll": "Додели сваку ставку категорији за слање",
+    "matchAllPairs": "Упари све парове за слање",
+    "selectMatch": "Изабери упаривање",
+    "correctCategoryWas": "Исправна категорија",
+    "correctMatchWas": "Исправно упаривање"
   },
   "host": {
     "waitingForPlayers": "Чекање играча",
@@ -238,7 +243,15 @@
     "emptyWaiting": "Чека стање",
     "player": "Играч",
     "upNext": "Следеће",
-    "upNextQuestion": "Следеће (П{current} од {total})"
+    "upNextQuestion": "Следеће (П{current} од {total})",
+    "trueFalse": "Тачно/Нетачно",
+    "categorise": "Категоризација",
+    "matching": "Упаривање",
+    "correctCategory": "Исправна категорија",
+    "assignToCategory": "Додели категорији",
+    "correctMatch": "Исправно упаривање",
+    "matchWith": "Упари са ставком",
+    "correct": "тачно"
   },
   "admin": {
     "quizzes": "Квизови",
@@ -542,7 +555,30 @@
       "translationPlaceholder": "Превод на {name}...",
       "deleteTranslation": "Обриши превод",
       "title": "Наслов",
-      "description": "Опис"
-    }
+      "description": "Опис",
+      "typeSingle": "Један",
+      "typeMulti": "Више",
+      "typeTrueFalse": "Тачно/Нетачно",
+      "typeCategorise": "Категоризација",
+      "typeMatching": "Упаривање",
+      "categories": "Категорије",
+      "items": "Ставке",
+      "addCategory": "Додај категорију",
+      "addItem": "Додај ставку",
+      "categoryN": "Категорија {n}",
+      "itemN": "Ставка {n}",
+      "selectCategory": "Изабери категорију",
+      "pairs": "Парови",
+      "addPair": "Додај пар",
+      "leftN": "Лево {n}",
+      "rightN": "Десно {n}",
+      "multiSelectHint": "Више одговора може бити означено као тачно. Играчи добијају парцијалне бодове за сваки тачан одговор.",
+      "trueFalseHint": "Означи Тачно или Нетачно као тачан одговор.",
+      "singleSelectHint": "Означи тачно један одговор као тачан.",
+      "categoriseHint": "Додели сваку ставку исправној категорији. Играчи добијају парцијалне бодове за сваку исправну доделу.",
+      "matchingHint": "Упари сваку леву ставку са исправном десном. Играчи добијају парцијалне бодове за сваки исправан пар."
+    },
+    "categoriseInvalid": "Подаци о категоризацији су непотпуни или неважећи",
+    "matchingInvalid": "Подаци о упаривању су непотпуни или неважећи"
   }
 }

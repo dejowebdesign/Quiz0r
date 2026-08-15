@@ -362,6 +362,67 @@ export class OpenAICompatibleProvider implements AIProvider {
     const sectionCount = Math.max(0, options.sectionCount);
     const targetQuestionCount = Math.min(Math.max(options.questionCount, 3), 25);
 
+    // Describe which question types the model is allowed to produce, and the
+    // JSON shape each extended type expects.
+    const allowed = options.allowedQuestionTypes && options.allowedQuestionTypes.length > 0
+      ? options.allowedQuestionTypes
+      : ["MULTIPLE_CHOICE"];
+    const typeDescriptions: string[] = [];
+    if (allowed.includes("MULTIPLE_CHOICE")) {
+      typeDescriptions.push(
+        "SINGLE_SELECT (one correct answer) and MULTI_SELECT (2+ correct answers where it makes sense)"
+      );
+    }
+    if (allowed.includes("TRUE_FALSE")) {
+      typeDescriptions.push(
+        'TRUE_FALSE (exactly two answers "True"/"False", one marked isCorrect=true)'
+      );
+    }
+    if (allowed.includes("CATEGORISE")) {
+      typeDescriptions.push(
+        'CATEGORISE (a categoriseData object: categories[] {id,label} and items[] {id,label,categoryId}; '
+        + "each item's categoryId names its correct category)"
+      );
+    }
+    if (allowed.includes("MATCHING")) {
+      typeDescriptions.push(
+        "MATCHING (a matchingData object: pairs[] {leftId,leftLabel,rightId,rightLabel}; "
+        + "each pair's leftId/rightId is the correct match)"
+      );
+    }
+    const typeLine = typeDescriptions.length > 0
+      ? `- Use a varied mix of: ${typeDescriptions.join("; ")}.`
+      : "- Use SINGLE_SELECT and MULTI_SELECT questions.";
+
+    const structuredShape = `
+When a question is CATEGORISE or MATCHING, omit the answers array and instead provide the matching structured object. Examples:
+CATEGORISE:
+{
+  "questionText": "Sort these animals into Mammals or Reptiles",
+  "questionType": "CATEGORISE",
+  "categoriseData": {
+    "categories": [
+      { "id": "cat_mammals", "label": "Mammals" },
+      { "id": "cat_reptiles", "label": "Reptiles" }
+    ],
+    "items": [
+      { "id": "item_dog", "label": "Dog", "categoryId": "cat_mammals" },
+      { "id": "item_snake", "label": "Snake", "categoryId": "cat_reptiles" }
+    ]
+  }
+}
+MATCHING:
+{
+  "questionText": "Match each capital to its country",
+  "questionType": "MATCHING",
+  "matchingData": {
+    "pairs": [
+      { "leftId": "left_paris", "leftLabel": "Paris", "rightId": "right_france", "rightLabel": "France" },
+      { "leftId": "left_tokyo", "leftLabel": "Tokyo", "rightId": "right_japan", "rightLabel": "Japan" }
+    ]
+  }
+}`;
+
     return `You are an experienced quiz master. Create a fully-written trivia quiz.
 
 Quiz requirements:
@@ -370,11 +431,13 @@ Quiz requirements:
 - Total playable questions: ${targetQuestionCount} (do NOT count section headers)
 - Number of sections/groups: ${sectionCount} (each must have a short title/description and at least one question)
 - Use engaging, concise wording suitable for a live host to read aloud.
-- Include a mix of SINGLE_SELECT (one correct answer) and MULTI_SELECT (2+ correct answers where it makes sense).
-- Always provide: questionText, hint, hostNotes, answers (answerText + isCorrect flag), timeLimit (seconds between 15-90), and points (50-200) for each playable question.
+${typeLine}
+- Always provide: questionText, hint, hostNotes, answers (answerText + isCorrect flag), timeLimit (seconds between 15-90), and points (50-200) for each playable question — except CATEGORISE/MATCHING questions, which use structured data instead of answers.
 - Provide helpful imageUrl values using reliable, license-friendly links (e.g., images.unsplash.com). Aim for every section AND at least half of the questions to include an image where it fits.
 - Keep everything in the appropriate language and avoid markdown/code fences.
-- Answers must always include at least one correct and one incorrect option with clear wording.
+- Answer-option questions must always include at least one correct and one incorrect option with clear wording.
+- For CATEGORISE use at least 2 categories and 2 items; for MATCHING use at least 2 pairs.
+${structuredShape}
 
 ${notes ? `Extra guidance from the host: ${notes}` : "No extra host guidance provided."}
 

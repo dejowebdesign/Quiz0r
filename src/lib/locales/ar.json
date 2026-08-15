@@ -156,7 +156,12 @@
     "you": "أنت",
     "submitAnswer": "إرسال الإجابة ({count} محدد)",
     "clicked": "تم النقر!",
-    "waitingForTime": "في انتظار انتهاء الوقت..."
+    "waitingForTime": "في انتظار انتهاء الوقت...",
+    "categoriseAssignAll": "ألصق كل عنصر بفئة للإرسال",
+    "matchAllPairs": "طابق كل الأزواج للإرسال",
+    "selectMatch": "اختر مطابقة",
+    "correctCategoryWas": "الفئة الصحيحة",
+    "correctMatchWas": "المطابقة الصحيحة"
   },
   "host": {
     "waitingForPlayers": "في انتظار اللاعبين",
@@ -236,7 +241,15 @@
     "emptyWaiting": "بانتظار الحالة",
     "player": "لاعب",
     "upNext": "التالي",
-    "upNextQuestion": "التالي (س{current} من {total})"
+    "upNextQuestion": "التالي (س{current} من {total})",
+    "trueFalse": "صواب/خطأ",
+    "categorise": "تصنيف",
+    "matching": "مطابقة",
+    "correctCategory": "الفئة الصحيحة",
+    "assignToCategory": "ألصق بفئة",
+    "correctMatch": "المطابقة الصحيحة",
+    "matchWith": "طابق مع عنصر",
+    "correct": "صحيح"
   },
   "admin": {
     "quizzes": "الاختبارات",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "ترجمة إلى {name}...",
       "deleteTranslation": "حذف الترجمة",
       "title": "العنوان",
-      "description": "الوصف"
-    }
+      "description": "الوصف",
+      "typeSingle": "واحد",
+      "typeMulti": "متعدد",
+      "typeTrueFalse": "صواب/خطأ",
+      "typeCategorise": "تصنيف",
+      "typeMatching": "مطابقة",
+      "categories": "الفئات",
+      "items": "العناصر",
+      "addCategory": "إضافة فئة",
+      "addItem": "إضافة عنصر",
+      "categoryN": "فئة {n}",
+      "itemN": "عنصر {n}",
+      "selectCategory": "اختر فئة",
+      "pairs": "الأزواج",
+      "addPair": "إضافة زوج",
+      "leftN": "يسار {n}",
+      "rightN": "يمين {n}",
+      "multiSelectHint": "يمكن وضع علامة على عدة إجابات كصحيحة. يحصل اللاعبون على درجة جزئية عن كل إجابة صحيحة.",
+      "trueFalseHint": "ضع علامة على صواب أو خطأ كإجابة صحيحة.",
+      "singleSelectHint": "ضع علامة على إجابة واحدة فقط كصحيحة.",
+      "categoriseHint": "ألصق كل عنصر بالفئة الصحيحة. يحصل اللاعبون على درجة جزئية عن كل إلصاق صحيح.",
+      "matchingHint": "طابق كل عنصر يسار بالعنصر يمين الصحيح. يحصل اللاعبون على درجة جزئية عن كل زوج صحيح."
+    },
+    "categoriseInvalid": "بيانات التصنيف غير مكتملة أو غير صالحة",
+    "matchingInvalid": "بيانات المطابقة غير مكتملة أو غير صالحة"
   }
 }

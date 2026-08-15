@@ -158,7 +158,12 @@
     "you": "Vi",
     "submitAnswer": "Pošalji odgovor ({count} izabrano)",
     "clicked": "Kliknuto!",
-    "waitingForTime": "Čeka se da vreme istekne..."
+    "waitingForTime": "Čeka se da vreme istekne...",
+    "categoriseAssignAll": "Dodeli svaku stavku kategoriji za slanje",
+    "matchAllPairs": "Upari sve parove za slanje",
+    "selectMatch": "Izaberi uparivanje",
+    "correctCategoryWas": "Ispravna kategorija",
+    "correctMatchWas": "Ispravno uparivanje"
   },
   "host": {
     "waitingForPlayers": "Čekanje igrača",
@@ -238,7 +243,15 @@
     "emptyWaiting": "Čeka stanje",
     "player": "Igrač",
     "upNext": "Sledeće",
-    "upNextQuestion": "Sledeće (P{current} od {total})"
+    "upNextQuestion": "Sledeće (P{current} od {total})",
+    "trueFalse": "Tačno/Netačno",
+    "categorise": "Kategorizacija",
+    "matching": "Uparivanje",
+    "correctCategory": "Ispravna kategorija",
+    "assignToCategory": "Dodeli kategoriji",
+    "correctMatch": "Ispravno uparivanje",
+    "matchWith": "Upari sa stavkom",
+    "correct": "tačno"
   },
   "admin": {
     "quizzes": "Kvizovi",
@@ -542,7 +555,30 @@
       "translationPlaceholder": "Prevod na {name}...",
       "deleteTranslation": "Obriši prevod",
       "title": "Naslov",
-      "description": "Opis"
-    }
+      "description": "Opis",
+      "typeSingle": "Jedan",
+      "typeMulti": "Više",
+      "typeTrueFalse": "Tačno/Netačno",
+      "typeCategorise": "Kategorizacija",
+      "typeMatching": "Uparivanje",
+      "categories": "Kategorije",
+      "items": "Stavke",
+      "addCategory": "Dodaj kategoriju",
+      "addItem": "Dodaj stavku",
+      "categoryN": "Kategorija {n}",
+      "itemN": "Stavka {n}",
+      "selectCategory": "Izaberi kategoriju",
+      "pairs": "Parovi",
+      "addPair": "Dodaj par",
+      "leftN": "Levo {n}",
+      "rightN": "Desno {n}",
+      "multiSelectHint": "Više odgovora može biti označeno kao tačno. Igrači dobijaju parcijalne bodove za svaki tačan odgovor.",
+      "trueFalseHint": "Označi Tačno ili Netačno kao tačan odgovor.",
+      "singleSelectHint": "Označi tačno jedan odgovor kao tačan.",
+      "categoriseHint": "Dodeli svaku stavku ispravnoj kategoriji. Igrači dobijaju parcijalne bodove za svaku ispravnu dodelu.",
+      "matchingHint": "Upari svaku levu stavku sa ispravnom desnom. Igrači dobijaju parcijalne bodove za svaki ispravan par."
+    },
+    "categoriseInvalid": "Podaci o kategorizaciji su nepotpuni ili nevažeći",
+    "matchingInvalid": "Podaci o uparivanju su nepotpuni ili nevažeći"
   }
 }

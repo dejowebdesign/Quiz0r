@@ -17,46 +17,69 @@ Quiz0r is a real-time multiplayer quiz application that enables hosts to create,
 
 **Key capabilities:**
 - Quiz management: create, edit, import/export quizzes with media support
+- Question types: Single Choice, Multiple Select, True/False, Categorise, and Matching
 - Live gameplay: real-time multiplayer with Socket.io
-- Host controls: display view, player monitor, admission controls
-- AI assistance: AI-powered quiz and theme generation
-- Multilingual: application available in English, German, and Serbian
+- Host controls: display view, player monitor, admission controls, reveal, and scoreboard
+- Server-side scoring with partial credit and speed bonus
+- Certificates: generated and downloadable for completed games
+- AI assistance: AI-powered quiz and theme generation with selectable question types and content translation
+- Multilingual: full application UI in 13 language variants, with RTL support and AI translation of quiz content
 - Self-hosting: Docker deployment with persistent SQLite database
 
 ## Current Features
 
 ### Multilingual Application
 
-The application interface is available in multiple languages:
-- 🇬🇧 English — default/master language
+The application interface is available in 13 language variants:
+- 🇬🇧 English — default/master language (fallback for any missing key)
 - 🇩🇪 Deutsch (German)
-- 🇷🇸 Srpski (Serbian)
+- 🇪🇸 Español (Spanish)
+- 🇫🇷 Français (French)
+- 🇮🇹 Italiano (Italian)
+- 🇵🇹 Português (Portuguese)
+- 🇷🇺 Русский (Russian)
+- 🇯🇵 日本語 (Japanese)
+- 🇨🇳 中文 (Chinese, simplified)
+- 🇸🇦 العربية (Arabic — RTL)
+- 🇮🇱 עברית (Hebrew — RTL)
+- 🇷🇸 Српски (Serbian, Cyrillic)
+- 🇷🇸 Srpski (Serbian, Latin)
 
-Application language and quiz-content language are separate systems. The player interface supports application language selection, while quiz content can be generated or translated into different languages.
+Serbian Cyrillic and Serbian Latin are maintained as separate locales. Arabic and Hebrew are rendered right-to-left (RTL); all other locales are left-to-right. Application language and quiz-content language are separate systems. The player interface supports application language selection, while quiz content can be generated or translated into different languages.
 
 **Language selection:** A language selector on the start page (homepage) lets users pick the application language. The choice is persisted in `localStorage` and applies to the entire Quiz0r UI (start page, menu, player lobby, join screen, host controls, and host display).
 
 **I18n architecture:**
-- `src/contexts/I18nContext.tsx` — `I18nProvider` holding the active locale and the `t(key, params?)` translation function. `t()` supports `{param}` interpolation, e.g. `t("player.questionOf", { current: 3, total: 10 })`.
-- `src/hooks/useTranslation.ts` — re-exports `t`, `locale`, `setLocale`, and `availableLocales`.
-- `src/lib/locales/{en,de,sr}.json` — shared translation files namespaced by `app`, `menu`, `player`, `host`, `admin`, and quiz-content sections. English is the master/fallback; missing keys fall back to English.
+- `src/contexts/I18nContext.tsx` — `I18nProvider` holding the active locale and the `t(key, params?)` translation function. `t()` supports `{param}` interpolation, e.g. `t("player.questionOf", { current: 3, total: 10 })`. RTL detection (`RTL_LOCALES`) applies `dir="rtl"` for Arabic and Hebrew.
+- `src/hooks/useTranslation.ts` — re-exports `t`, `locale`, `setLocale`, `availableLocales`, and `isRtl`.
+- `src/lib/locales/*.json` — 13 translation files namespaced by `app`, `menu`, `player`, `host`, `admin`, and quiz-content sections. English is the master/fallback; missing keys fall back to English.
 - `src/components/ui/language-selector.tsx` — reusable `<LanguageSelector />` dropdown (used on the start page).
 
 To add another application language: add an entry to `AppSupportedLocales` in `I18nContext.tsx`, import a new `src/lib/locales/<code>.json` file, and translate the keys.
 
 ### Question Types
 
-Current implemented question types:
-- **Single Choice** — one correct answer
-- **Multiple Choice** — multiple correct answers with partial credit scoring
+Quiz0r supports five question types, all stored on a single `Question` table with a `questionType` discriminator. The extended types (`CATEGORISE`, `MATCHING`) carry their structured content in nullable JSON columns (`categoriseData`, `matchingData`) so existing Single/Multiple Choice questions remain unaffected (backward-compatible migration).
+
+Implemented question types:
+- **Single Choice** (`SINGLE_SELECT`) — one correct answer
+- **Multiple Select** (`MULTI_SELECT`) — multiple correct answers with partial-credit scoring
+- **True/False** (`TRUE_FALSE`) — a binary statement the player marks as true or false
+- **Categorise** (`CATEGORISE`) — assign items to the correct categories (structured JSON content)
+- **Matching** (`MATCHING`) — connect pairs, e.g. countries to capitals (structured JSON content)
+
+Content models, validation, and server-side scoring for the extended types live in `src/lib/question-types.ts`. Admin editor UI (`QuestionEditorDialog`), the player answer view, host reveal, and the question card all handle every type, with localized type labels drawn from the existing `host.*` i18n keys.
 
 ### Scoring System
 
-The scoring system is designed for learning and training quizzes and uses a partial-credit concept for Multiple Choice questions:
-- **Single Choice**: Base points with speed bonus (up to 50% for fastest answers)
-- **Multiple Choice**: Partial credit based on correct/incorrect selections, with penalties for wrong additional selections and speed bonus
+Scoring runs server-side in `src/server/game-manager.ts` with helpers in `src/lib/question-types.ts`, and uses a partial-credit concept suited to learning and training quizzes:
 
-The design incorporates concepts inspired by partial-credit scoring systems used in examination contexts.
+- **Single Choice / True/False**: Base points with a speed bonus (up to 50% for the fastest answers).
+- **Multiple Select**: Partial credit based on correct/incorrect selections, with penalties for wrong additional selections and a speed bonus.
+- **Categorise**: Partial credit proportional to correctly assigned items (`correctnessRatio = correctItems / totalItems`), times a speed multiplier.
+- **Matching**: Partial credit proportional to correctly matched pairs (`correctnessRatio = correctPairs / totalPairs`), times a speed multiplier.
+
+In all cases the speed multiplier is `max(0, (1 - timeTaken / timeLimit) * 0.5)`, and the awarded points are `round(basePoints * correctnessRatio * (1 + speedMultiplier))` where applicable. The design incorporates concepts inspired by partial-credit scoring systems used in examination contexts.
 
 ### AI Question Generation
 
@@ -67,15 +90,21 @@ Quiz0r uses an extensible AI provider abstraction (`AIProvider` interface) that 
 Quiz0r → AIProvider interface → OpenAICompatibleProvider → configured AI endpoint
 ```
 
-**Current preset configurations:**
-- OpenAI (GPT-4o)
-- FreeLLMAPI (local proxy with multiple free-tier providers)
-- OpenRouter (aggregated API access)
-- Ollama (local LLM server)
-- LM Studio (local LLM server)
-- Custom OpenAI-compatible endpoint (user-configurable)
+**Configurable AI providers** (`PROVIDER_PRESETS` in `src/lib/providers/openai-compatible-provider.ts`):
+- **OpenAI** (GPT-4o, `https://api.openai.com/v1`)
+- **FreeLLMAPI** (local proxy with multiple free-tier providers)
+- **OpenRouter** (aggregated API access)
+- **Ollama** (local LLM server, no API key required)
+- **LM Studio** (local LLM server, no API key required)
+- **Custom** (any user-configurable OpenAI-compatible endpoint)
 
 API credentials are stored server-side in the database and are never exposed to the client.
+
+**Selectable question types:** When generating a quiz with AI, the request accepts a `questionTypes` list chosen from the `AiQuestionTypeOption` set (`MULTIPLE_CHOICE`, `MULTI_SELECT`, `TRUE_FALSE`, `CATEGORISE`, `MATCHING`). The generator (`src/lib/openai-quiz-generator.ts`) maps each option to the corresponding storage type and instructs the model accordingly; if no types are supplied it defaults to Multiple Choice.
+
+**AI translation of quiz content:** Quiz text (questions, answers, and the structured labels of Categorise/Matching content) can be translated into the supported languages via the AI provider (`src/lib/openai-translate.ts`). Translations are stored per-language in the `QuestionTranslation`/`QuestionContentTranslation` tables.
+
+**Source language:** Each quiz records a `sourceLanguage` used as the origin for translation. `src/lib/source-language.ts` resolves the saved `sourceLanguage` (defaulting to English for legacy quizzes); automatic language detection is intentionally not performed.
 
 > **Note:** The AI provider architecture is implemented. End-to-end testing against local FreeLLMAPI instances is still pending.
 
@@ -87,14 +116,47 @@ Recent technical improvements include:
 - Docker build/runtime fixes for Prisma 7, Tailwind 4, and Next.js 16
 - AI provider abstraction refactor for extensibility
 - Multilingual application language support
+- Extended question types (True/False, Categorise, Matching) with server-side partial-credit scoring
+
+### Host / Player / Display System
+
+A game runs across three coordinated surfaces connected via Socket.io (`src/server/game-manager.ts`):
+- **Player view** (`/play/[gameCode]`) — public join/answer screen; players join with a game code or QR link.
+- **Host control** (`/host/[gameCode]/control`) — admission controls, player monitor, reveal and scoreboard triggers, certificate access.
+- **Host display** (`/host/[gameCode]/display`) — the projected leaderboard/question view, scaled to the screen via `AspectRatioHelper`.
+
+The host reveals answers after each question, then advances to a scoreboard before the next question; both steps are required (`REVEAL_REQUIRED`).
+
+### Reveal and Scoreboard
+
+After players answer, the host reveals the correct answers. For the extended types, the reveal includes type-specific statistics (per-item correctness for Categorise, per-pair correctness for Matching). The scoreboard then ranks players by their accumulated server-side score.
+
+### Certificates
+
+Completed games can issue certificates, generated server-side (`src/lib/certificate-service.ts`, `src/lib/certificate-utils.ts`) and downloadable from the host control panel. Status banners and a regeneration panel are provided via `src/components/certificate/`.
+
+### Import / Export
+
+Quizzes can be imported from and exported to a portable format (`src/lib/validate-import.ts`, `src/app/api/quizzes/import`, `src/app/api/quizzes/[quizId]/export`). Import validation understands all five question types, including the structured Categorise/Matching content.
+
+### Theme System
+
+Quiz0r ships a theme system with presets, contrast checks, and AI theme generation. Themes are managed in the admin UI (`/admin/themes`) and applied to the player/display experience. Relevant code lives in `src/lib/theme-*.ts` and `src/components/theme/`.
+
+### Admin and Settings
+
+The admin area (`/admin`) covers quiz library management, game history, theme editing, and settings (`/admin/settings`) for API keys, AI provider configuration, tunneling, and other operational parameters. Admin/host routes are protected by authentication and kept local-only (see Security and routing).
+
+### Learning Quiz and Examination Suitability
+
+The combination of five question types, server-side partial-credit scoring with speed bonus, certificates, and multilingual content makes Quiz0r suitable for learning quizzes and knowledge assessments (Sachkundeprüfungen) — not only for entertainment game shows.
 
 ## Planned
 
 Future enhancements under consideration:
-- Additional question types (True/False, Categorise, Matching)
 - Provider/model selection UI
 - Improved AI provider configuration interface
-- Extended language support
+- Additional languages and translation refinements
 
 ## Technology
 
@@ -111,18 +173,6 @@ Future enhancements under consideration:
 - Node.js 18.17+ and npm
 - SQLite (bundled via Prisma; no external database needed)
 - Docker (optional) for containerized deployment
-
-## Stack
-- Next.js 14, React 18, TypeScript
-- Socket.io for realtime play
-- Prisma + SQLite (local file database)
-- Tailwind + shadcn/ui for UI
-- ngrok for tunneling
-
-## Prerequisites
-- Node.js 18.17+ and npm
-- SQLite (bundled via Prisma; no external DB needed)
-- Docker (optional) for containerized runs
 
 ## Quick Start
 ```bash
@@ -223,12 +273,14 @@ docker compose logs -f   # wait for "Ready on http://localhost:3000"
 │  │  ├─ useQuizPreloader.ts                # Quiz preloading hook
 │  │  └─ useTranslation.ts                  # Hook exposing t(), locale, setLocale
 │  ├─ lib/                                  # Services and utilities
-│  │  ├─ locales/{en,de,sr}.json            # Application UI translation files
+│  │  ├─ locales/*.json                     # 13 application UI translation files
+│  │  ├─ question-types.ts                  # Question content models, validation, server-side scoring, type labels
 │  │  ├─ openai-*.ts                        # AI quiz/theme/translation helpers
+│  │  ├─ providers/openai-compatible-provider.ts # AI provider presets (OpenAI, FreeLLMAPI, OpenRouter, Ollama, LM Studio, Custom)
+│  │  ├─ source-language.ts                 # Resolves a quiz's saved source language for translation
 │  │  ├─ certificate-*                      # Certificate generation and helpers
 │  │  ├─ theme-*.ts                         # Theme presets, contrast, color utilities
 │  │  ├─ tunnel.ts                          # ngrok tunnel control
-│  │  ├─ scoring.ts                         # Game scoring logic
 │  │  ├─ db.ts                              # Prisma client helper
 │  │  └─ utils.ts                           # Shared client/server helpers
 │  ├─ middleware.ts                         # Blocks admin/host routes from ngrok/public traffic

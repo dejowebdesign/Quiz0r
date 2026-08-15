@@ -15,6 +15,14 @@ import { BORDER_RADIUS_MAP, SHADOW_MAP } from "@/types/theme";
 import { getContrastingTextColor } from "@/lib/color-utils";
 import { SupportedLanguages } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
+import {
+  isCategoriseType,
+  isMatchingType,
+  parseCategoriseData,
+  parseMatchingData,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 export default function HostDisplayPage({
   params,
@@ -433,7 +441,153 @@ export default function HostDisplayPage({
                   )}
                 </div>
 
-                {/* Answer Options */}
+            {currentQuestion && (() => {
+              const isStructuredCategorise =
+                isCategoriseType(currentQuestion.questionType);
+              const isStructuredMatching =
+                isMatchingType(currentQuestion.questionType);
+
+              if (isStructuredCategorise) {
+                const data = parseCategoriseData(
+                  currentQuestion.categoriseData as CategoriseData | string | null | undefined
+                );
+                if (!data) return null;
+                const correctCatForItem =
+                  (itemId: string) => questionEnded?.correctCategorise?.[itemId];
+                return (
+                  <div className="space-y-6">
+                    {/* Categories legend */}
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {data.categories.map((cat) => (
+                        <span
+                          key={cat.id}
+                          className="px-3 py-1 rounded-full bg-primary/15 text-primary text-sm md:text-base font-semibold"
+                        >
+                          {cat.label}
+                        </span>
+                      ))}
+                    </div>
+                    {/* Items with correct category highlighted during reveal */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                      {data.items.map((item, index) => {
+                        const correctCatId = isRevealing
+                          ? correctCatForItem(item.id)
+                          : undefined;
+                        const correctCatLabel =
+                          correctCatId &&
+                          data.categories.find((c) => c.id === correctCatId)?.label;
+                        return (
+                          <div
+                            key={item.id}
+                            className={`p-4 md:p-5 rounded-lg border ${
+                              isRevealing && correctCatId
+                                ? "border-green-500 bg-green-500/10"
+                                : "border-border bg-card"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <span className="text-base md:text-lg font-semibold">
+                                {item.label}
+                              </span>
+                              {isRevealing && correctCatId && (
+                                <Check className="w-6 h-6 text-green-600 shrink-0" />
+                              )}
+                            </div>
+                            {isRevealing && correctCatLabel ? (
+                              <p className="text-sm text-green-600">
+                                {t("host.correctCategory")}:{" "}
+                                <strong>{correctCatLabel}</strong>
+                              </p>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                {t("host.assignToCategory")}
+                              </p>
+                            )}
+                            {/* Per-item correctness stat */}
+                            {isRevealing &&
+                              questionEnded?.stats.categorise && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {(() => {
+                                    const stat = questionEnded.stats.categorise.find(
+                                      (s) => s.itemId === item.id
+                                    );
+                                    return stat
+                                      ? `${stat.correctCount}/${stat.total} ${t("host.correct")}`
+                                      : "";
+                                  })()}
+                                </p>
+                              )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (isStructuredMatching) {
+                const data = parseMatchingData(
+                  currentQuestion.matchingData as MatchingData | string | null | undefined
+                );
+                if (!data) return null;
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    {data.pairs.map((pair) => {
+                      const correctRightId = isRevealing
+                        ? questionEnded?.correctMatching?.[pair.leftId]
+                        : undefined;
+                      const correctRightLabel =
+                        correctRightId &&
+                        data.pairs.find((p) => p.rightId === correctRightId)?.rightLabel;
+                      return (
+                        <div
+                          key={pair.leftId}
+                          className={`p-4 md:p-5 rounded-lg border ${
+                            isRevealing && correctRightId
+                              ? "border-green-500 bg-green-500/10"
+                              : "border-border bg-card"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-base md:text-lg font-semibold">
+                              {pair.leftLabel}
+                            </span>
+                            {isRevealing && correctRightId && (
+                              <Check className="w-6 h-6 text-green-600 shrink-0" />
+                            )}
+                          </div>
+                          {isRevealing && correctRightLabel ? (
+                            <p className="text-sm text-green-600 mt-1">
+                              {t("host.correctMatch")}:{" "}
+                              <strong>{correctRightLabel}</strong>
+                            </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {t("host.matchWith")}
+                            </p>
+                          )}
+                          {isRevealing &&
+                            questionEnded?.stats.matching && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {(() => {
+                                  const stat = questionEnded.stats.matching.find(
+                                    (s) => s.leftId === pair.leftId
+                                  );
+                                  return stat
+                                    ? `${stat.correctCount}/${stat.total} ${t("host.correct")}`
+                                    : "";
+                                })()}
+                              </p>
+                            )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              // Default: render answer options for SINGLE/MULTI/TRUE_FALSE.
+              return (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   {currentQuestion.answers.map((answer, index) => {
                     const isCorrect = correctIds.includes(answer.id);
@@ -483,6 +637,8 @@ export default function HostDisplayPage({
                     );
                   })}
                 </div>
+              );
+            })()}
 
                 {/* Answer count */}
                 {!isRevealing && (() => {

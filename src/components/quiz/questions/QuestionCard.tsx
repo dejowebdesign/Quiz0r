@@ -28,6 +28,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { SupportedLanguages, type LanguageCode } from "@/types";
+import { useTranslation } from "@/hooks/useTranslation";
+import { getQuestionTypeLabelKey } from "@/lib/question-types";
 
 interface Answer {
   id?: string;
@@ -75,7 +77,12 @@ export function QuestionCard({
   completeLanguages,
   partialLanguages,
 }: QuestionCardProps) {
+  const { t } = useTranslation();
   const isSection = question.questionType === "SECTION";
+
+  // Localized question-type label, using the existing host.* i18n keys
+  // (singleSelect, multiSelect, trueFalse, categorise, matching).
+  const typeLabel = t(`host.${getQuestionTypeLabelKey(question.questionType)}`);
 
   const {
     attributes,
@@ -150,11 +157,7 @@ export function QuestionCard({
                     </>
                   ) : (
                     <>
-                      <span>
-                        {question.questionType === "MULTI_SELECT"
-                          ? "Multi Select"
-                          : "Single Select"}
-                      </span>
+                      <span>{typeLabel}</span>
                       <span>·</span>
                       <span>{question.timeLimit}s</span>
                       <span>·</span>

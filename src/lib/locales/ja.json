@@ -156,7 +156,12 @@
     "you": "あなた",
     "submitAnswer": "回答を送信 ({count} 件選択)",
     "clicked": "クリック！",
-    "waitingForTime": "時間切れを待っています..."
+    "waitingForTime": "時間切れを待っています...",
+    "categoriseAssignAll": "すべての項目をカテゴリに割り当てて送信",
+    "matchAllPairs": "すべてのペアを組み合わせて送信",
+    "selectMatch": "マッチを選択",
+    "correctCategoryWas": "正解カテゴリ",
+    "correctMatchWas": "正解のペア"
   },
   "host": {
     "waitingForPlayers": "プレイヤーを待っています",
@@ -236,7 +241,15 @@
     "emptyWaiting": "状態待ち",
     "player": "プレイヤー",
     "upNext": "次へ",
-    "upNextQuestion": "次へ (Q{current}/{total})"
+    "upNextQuestion": "次へ (Q{current}/{total})",
+    "trueFalse": "〇/×",
+    "categorise": "分類",
+    "matching": "マッチング",
+    "correctCategory": "正解カテゴリ",
+    "assignToCategory": "カテゴリに割り当て",
+    "correctMatch": "正解のペア",
+    "matchWith": "項目とペアにする",
+    "correct": "正解"
   },
   "admin": {
     "quizzes": "クイズ",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "{name}の翻訳...",
       "deleteTranslation": "翻訳を削除",
       "title": "タイトル",
-      "description": "説明"
-    }
+      "description": "説明",
+      "typeSingle": "単一",
+      "typeMulti": "複数",
+      "typeTrueFalse": "〇/×",
+      "typeCategorise": "分類",
+      "typeMatching": "マッチング",
+      "categories": "カテゴリ",
+      "items": "項目",
+      "addCategory": "カテゴリ追加",
+      "addItem": "項目追加",
+      "categoryN": "カテゴリ {n}",
+      "itemN": "項目 {n}",
+      "selectCategory": "カテゴリ選択",
+      "pairs": "ペア",
+      "addPair": "ペア追加",
+      "leftN": "左 {n}",
+      "rightN": "右 {n}",
+      "multiSelectHint": "複数の回答を正解に設定できます。プレイヤーは正解ごとに部分点を得ます。",
+      "trueFalseHint": "〇または×を正解として設定してください。",
+      "singleSelectHint": "1つだけ正解として設定してください。",
+      "categoriseHint": "各項目を正しいカテゴリに割り当ててください。プレイヤーは正しい割り当てごとに部分点を得ます。",
+      "matchingHint": "左の項目を正しい右の項目とペアにしてください。プレイヤーは正しいペアごとに部分点を得ます。"
+    },
+    "categoriseInvalid": "分類データが不完全または無効です",
+    "matchingInvalid": "マッチングデータが不完全または無効です"
   }
 }

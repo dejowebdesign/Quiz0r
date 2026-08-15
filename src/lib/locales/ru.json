@@ -156,7 +156,12 @@
     "you": "Вы",
     "submitAnswer": "Отправить ответ (выбрано {count})",
     "clicked": "Нажато!",
-    "waitingForTime": "Ожидание окончания времени..."
+    "waitingForTime": "Ожидание окончания времени...",
+    "categoriseAssignAll": "Отнесите все элементы к категориям для отправки",
+    "matchAllPairs": "Сопоставьте все пары для отправки",
+    "selectMatch": "Выбрать сопоставление",
+    "correctCategoryWas": "Верная категория",
+    "correctMatchWas": "Верное сопоставление"
   },
   "host": {
     "waitingForPlayers": "Ожидание игроков",
@@ -236,7 +241,15 @@
     "emptyWaiting": "Ожидание состояния",
     "player": "Игрок",
     "upNext": "Далее",
-    "upNextQuestion": "Далее (В{current} из {total})"
+    "upNextQuestion": "Далее (В{current} из {total})",
+    "trueFalse": "Верно/Неверно",
+    "categorise": "Категории",
+    "matching": "Сопоставление",
+    "correctCategory": "Верная категория",
+    "assignToCategory": "Отнести к категории",
+    "correctMatch": "Верное сопоставление",
+    "matchWith": "Сопоставить с элементом",
+    "correct": "верно"
   },
   "admin": {
     "quizzes": "Викторины",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "Перевод на {name}...",
       "deleteTranslation": "Удалить перевод",
       "title": "Название",
-      "description": "Описание"
-    }
+      "description": "Описание",
+      "typeSingle": "Один",
+      "typeMulti": "Несколько",
+      "typeTrueFalse": "Верно/Неверно",
+      "typeCategorise": "Категории",
+      "typeMatching": "Сопоставление",
+      "categories": "Категории",
+      "items": "Элементы",
+      "addCategory": "Добавить категорию",
+      "addItem": "Добавить элемент",
+      "categoryN": "Категория {n}",
+      "itemN": "Элемент {n}",
+      "selectCategory": "Выбрать категорию",
+      "pairs": "Пары",
+      "addPair": "Добавить пару",
+      "leftN": "Лево {n}",
+      "rightN": "Право {n}",
+      "multiSelectHint": "Можно отметить несколько ответов как правильные. Игроки получают частичный балл за каждый правильный ответ.",
+      "trueFalseHint": "Отметьте Верно или Неверно как правильный ответ.",
+      "singleSelectHint": "Отметьте ровно один ответ как правильный.",
+      "categoriseHint": "Отнесите каждый элемент к нужной категории. Игроки получают частичный балл за каждое верное отнесение.",
+      "matchingHint": "Сопоставьте каждый левый элемент с правым. Игроки получают частичный балл за каждую верную пару."
+    },
+    "categoriseInvalid": "Данные категорий неполны или некорректны",
+    "matchingInvalid": "Данные сопоставления неполны или некорректны"
   }
 }

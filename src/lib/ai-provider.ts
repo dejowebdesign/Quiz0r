@@ -16,6 +16,7 @@
 
 import { prisma } from "@/lib/db";
 import type { AIProviderType } from "@/lib/ai-provider-config";
+import type { AiQuestionTypeOption } from "@/lib/question-types";
 export { AIProviderType };
 
 /**
@@ -29,6 +30,12 @@ export interface QuizGenerationOptions {
   additionalNotes?: string;
   /** Language the generated quiz content should be authored in. */
   sourceLanguage?: string;
+  /**
+   * Which question types the AI may produce. Defaults to single/multi-select
+   * when omitted. The provider uses this to bias the prompt and the normalizer
+   * uses it to coerce any disallowed types back to a permitted one.
+   */
+  allowedQuestionTypes?: AiQuestionTypeOption[];
 }
 
 /**
@@ -45,13 +52,16 @@ export interface NormalizedAnswer {
  */
 export interface NormalizedQuestion {
   questionText: string;
-  questionType: "SINGLE_SELECT" | "MULTI_SELECT" | "SECTION";
+  questionType: "SINGLE_SELECT" | "MULTI_SELECT" | "TRUE_FALSE" | "CATEGORISE" | "MATCHING" | "SECTION";
   hint: string | null;
   hostNotes: string | null;
   imageUrl: string | null;
   timeLimit: number;
   points: number;
   answers: NormalizedAnswer[];
+  // Structured content for the extended types (null otherwise).
+  categoriseData?: import("@/lib/question-types").CategoriseData | null;
+  matchingData?: import("@/lib/question-types").MatchingData | null;
 }
 
 /**
@@ -76,6 +86,14 @@ export interface AIQuestion {
   timeLimit?: number;
   points?: number;
   answers?: AIAnswer[];
+  // Structured content for the extended types (raw provider shape).
+  categoriseData?: {
+    categories?: AICategoriseCategory[];
+    items?: AICategoriseItem[];
+  } | null;
+  matchingData?: {
+    pairs?: AIMatchingPair[];
+  } | null;
 }
 
 /**
@@ -85,6 +103,25 @@ export interface AIAnswer {
   answerText: string;
   isCorrect?: boolean;
   imageUrl?: string | null;
+}
+
+/** Raw AI category/item for CATEGORISE questions. */
+export interface AICategoriseCategory {
+  id?: string;
+  label: string;
+}
+export interface AICategoriseItem {
+  id?: string;
+  label: string;
+  categoryId?: string;
+}
+
+/** Raw AI matching pair. */
+export interface AIMatchingPair {
+  leftId?: string;
+  leftLabel: string;
+  rightId?: string;
+  rightLabel: string;
 }
 
 /**

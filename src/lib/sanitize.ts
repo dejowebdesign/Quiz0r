@@ -3,7 +3,11 @@
  * Sanitizes text inputs to prevent XSS and data corruption
  */
 
-import { ExportedQuiz } from "@/types/export";
+import {
+  ExportedQuiz,
+  type ExportedCategoriseData,
+  type ExportedMatchingData,
+} from "@/types/export";
 
 export function sanitizeQuizData(quiz: ExportedQuiz): ExportedQuiz {
   const powerUps = quiz.powerUps ?? {
@@ -32,6 +36,8 @@ export function sanitizeQuizData(quiz: ExportedQuiz): ExportedQuiz {
       easterEggButtonText: q.easterEggButtonText ? sanitizeText(q.easterEggButtonText) : null,
       easterEggUrl: q.easterEggUrl ? sanitizeText(q.easterEggUrl) : null,
       easterEggDisablesScoring: q.easterEggDisablesScoring ?? false,
+      categoriseData: q.categoriseData ? sanitizeCategoriseData(q.categoriseData) : null,
+      matchingData: q.matchingData ? sanitizeMatchingData(q.matchingData) : null,
       translations: q.translations?.map(t => ({
         ...t,
         languageCode: typeof t.languageCode === "string" ? t.languageCode.trim() : "",
@@ -39,6 +45,12 @@ export function sanitizeQuizData(quiz: ExportedQuiz): ExportedQuiz {
         hostNotes: t.hostNotes ? sanitizeText(t.hostNotes) : null,
         hint: t.hint ? sanitizeText(t.hint) : null,
         easterEggButtonText: t.easterEggButtonText ? sanitizeText(t.easterEggButtonText) : null,
+      })) ?? [],
+      contentTranslations: q.contentTranslations?.map(t => ({
+        languageCode: typeof t.languageCode === "string" ? t.languageCode.trim() : "",
+        // contentData is a JSON string of translated labels; sanitize the
+        // embedded label strings while preserving structure.
+        contentData: sanitizeContentDataString(t.contentData),
       })) ?? [],
       answers: q.answers.map(a => ({
         ...a,
@@ -71,4 +83,67 @@ function sanitizeCount(value: unknown): number {
     return 0;
   }
   return Math.min(10, Math.max(0, Math.round(value)));
+}
+
+// Sanitize the structured-content label strings for CATEGORISE/MATCHING.
+// Structure and ids are preserved; only label text is cleaned.
+function sanitizeCategoriseData(data: ExportedCategoriseData): ExportedCategoriseData {
+  return {
+    categories: (data.categories || []).map((c) => ({
+      id: typeof c.id === "string" ? c.id : "",
+      label: typeof c.label === "string" ? sanitizeText(c.label) : "",
+    })),
+    items: (data.items || []).map((i) => ({
+      id: typeof i.id === "string" ? i.id : "",
+      label: typeof i.label === "string" ? sanitizeText(i.label) : "",
+      categoryId: typeof i.categoryId === "string" ? i.categoryId : "",
+    })),
+  };
+}
+
+function sanitizeMatchingData(data: ExportedMatchingData): ExportedMatchingData {
+  return {
+    pairs: (data.pairs || []).map((p) => ({
+      leftId: typeof p.leftId === "string" ? p.leftId : "",
+      leftLabel: typeof p.leftLabel === "string" ? sanitizeText(p.leftLabel) : "",
+      rightId: typeof p.rightId === "string" ? p.rightId : "",
+      rightLabel: typeof p.rightLabel === "string" ? sanitizeText(p.rightLabel) : "",
+    })),
+  };
+}
+
+// Sanitize a contentData JSON string (translated structured content) by
+// sanitizing every label field it contains; non-label structure is preserved.
+function sanitizeContentDataString(contentData: string): string {
+  if (typeof contentData !== "string") return "{}";
+  try {
+    const parsed = JSON.parse(contentData);
+    const cleaned: Record<string, unknown> = {};
+    if (parsed && typeof parsed === "object") {
+      if (Array.isArray(parsed.categories)) {
+        cleaned.categories = parsed.categories.map((c: { id?: unknown; label?: unknown }) => ({
+          id: typeof c.id === "string" ? c.id : "",
+          label: typeof c.label === "string" ? sanitizeText(c.label) : "",
+        }));
+      }
+      if (Array.isArray(parsed.items)) {
+        cleaned.items = parsed.items.map((i: { id?: unknown; label?: unknown; categoryId?: unknown }) => ({
+          id: typeof i.id === "string" ? i.id : "",
+          label: typeof i.label === "string" ? sanitizeText(i.label) : "",
+          categoryId: typeof i.categoryId === "string" ? i.categoryId : "",
+        }));
+      }
+      if (Array.isArray(parsed.pairs)) {
+        cleaned.pairs = parsed.pairs.map((p: { leftId?: unknown; leftLabel?: unknown; rightId?: unknown; rightLabel?: unknown }) => ({
+          leftId: typeof p.leftId === "string" ? p.leftId : "",
+          leftLabel: typeof p.leftLabel === "string" ? sanitizeText(p.leftLabel) : "",
+          rightId: typeof p.rightId === "string" ? p.rightId : "",
+          rightLabel: typeof p.rightLabel === "string" ? sanitizeText(p.rightLabel) : "",
+        }));
+      }
+    }
+    return JSON.stringify(cleaned);
+  } catch {
+    return "{}";
+  }
 }

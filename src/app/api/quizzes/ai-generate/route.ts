@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateQuizWithAI } from "@/lib/openai-quiz-generator";
 import { requireAdmin } from "@/lib/auth";
 import { resolveSourceLanguage } from "@/lib/source-language";
+import { AI_QUESTION_TYPE_OPTIONS, AiQuestionTypeOption } from "@/lib/question-types";
 
 // POST /api/quizzes/ai-generate - Generate a quiz with AI (admin only)
 export async function POST(request: NextRequest) {
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
       sectionCount = 2,
       additionalNotes,
       sourceLanguage,
+      questionTypes,
     } = body;
 
     if (!topic || typeof topic !== "string") {
@@ -28,6 +30,18 @@ export async function POST(request: NextRequest) {
     const parsedQuestionCount = Number(questionCount);
     const parsedSectionCount = Number(sectionCount);
 
+    // Coerce the requested question-type selection to valid AI options. At
+    // least one type must be selected; otherwise default to multiple choice.
+    const allowedQuestionTypes: AiQuestionTypeOption[] = Array.isArray(questionTypes)
+      ? (questionTypes.filter((t: string) =>
+          (AI_QUESTION_TYPE_OPTIONS as string[]).includes(t)
+        ) as AiQuestionTypeOption[])
+      : [];
+    const resolvedAllowed =
+      allowedQuestionTypes.length > 0
+        ? allowedQuestionTypes
+        : ([AiQuestionTypeOption.MULTIPLE_CHOICE] as AiQuestionTypeOption[]);
+
     const result = await generateQuizWithAI({
       topic,
       difficulty,
@@ -39,6 +53,7 @@ export async function POST(request: NextRequest) {
         : 2,
       additionalNotes,
       sourceLanguage: typeof sourceLanguage === "string" ? sourceLanguage : undefined,
+      allowedQuestionTypes: resolvedAllowed,
     });
 
     return NextResponse.json(

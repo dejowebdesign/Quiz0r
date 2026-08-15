@@ -37,6 +37,19 @@ import { getContrastingTextColor } from "@/lib/color-utils";
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { useTranslation } from "@/hooks/useTranslation";
 import { AppLocale } from "@/contexts/I18nContext";
+import {
+  isCategoriseType,
+  isMatchingType,
+  isTrueFalseType,
+  parseCategoriseData,
+  parseMatchingData,
+  categoriseAssignmentId,
+  matchingAssignmentId,
+  playerSafeCategoriseData,
+  playerSafeMatchingData,
+  type CategoriseData,
+  type MatchingData,
+} from "@/lib/question-types";
 
 export default function PlayerGamePage({
   params,
@@ -54,6 +67,12 @@ export default function PlayerGamePage({
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
   const [selectedAnswers, setSelectedAnswers] = useState<Set<string>>(new Set());
+  // Player-side structured selections for CATEGORISE/MATCHING. These hold the
+  // player's answers BEFORE submission; the server holds the answer key.
+  // categoriseSelection: itemId -> categoryId (player's chosen category).
+  const [categoriseSelection, setCategoriseSelection] = useState<Record<string, string>>({});
+  // matchingSelection: leftId -> rightId (player's chosen match).
+  const [matchingSelection, setMatchingSelection] = useState<Record<string, string>>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [easterEggClicked, setEasterEggClicked] = useState<Set<string>>(new Set());
   const [gameStatus, setGameStatus] = useState<"loading" | "valid" | "not_found" | "ended">("loading");
@@ -258,6 +277,8 @@ export default function PlayerGamePage({
   useEffect(() => {
     setSelectedAnswers(new Set());
     setHasSubmitted(false);
+    setCategoriseSelection({});
+    setMatchingSelection({});
   }, [effectiveCurrentQuestion?.id]);
 
   // Initialize power-up counts from gameState
@@ -329,6 +350,37 @@ export default function PlayerGamePage({
       totalQuestions: gameState.totalQuestions,
     };
   }, [effectiveCurrentQuestion, gameState, selectedLanguage]);
+
+  // Resolve the structured content for the current question. The server sends
+  // a player-safe copy (correct answers stripped). If a translation exists for
+  // the selected language we use the translated labels; otherwise the source.
+  const structuredContent = useMemo(() => {
+    if (!effectiveCurrentQuestion) return null;
+    const qt = effectiveCurrentQuestion.questionType;
+    const translations = effectiveCurrentQuestion.translations;
+    const translatedForLang =
+      translations?.[selectedLanguage] as
+        | { categoriseData?: CategoriseData; matchingData?: MatchingData }
+        | undefined;
+
+    if (isCategoriseType(qt)) {
+      const base = translatedForLang?.categoriseData
+        ? translatedForLang.categoriseData
+        : parseCategoriseData(effectiveCurrentQuestion.categoriseData);
+      if (!base) return null;
+      // Re-apply player-safe sanitization to the translated content in case
+      // translation preserved the category mapping (it should have).
+      return { type: "CATEGORISE" as const, data: playerSafeCategoriseData(base) };
+    }
+    if (isMatchingType(qt)) {
+      const base = translatedForLang?.matchingData
+        ? translatedForLang.matchingData
+        : parseMatchingData(effectiveCurrentQuestion.matchingData);
+      if (!base) return null;
+      return { type: "MATCHING" as const, data: playerSafeMatchingData(base) };
+    }
+    return null;
+  }, [effectiveCurrentQuestion, selectedLanguage]);
 
   const monitorViewState = useMemo<PlayerViewState | null>(() => {
     const resolvedPlayerId = playerId || knownPlayerId;
@@ -635,8 +687,11 @@ export default function PlayerGamePage({
 
     const newSelected = new Set(selectedAnswers);
 
-    if (effectiveCurrentQuestion?.questionType === "SINGLE_SELECT") {
-      // Single select - replace selection
+    if (
+      effectiveCurrentQuestion?.questionType === "SINGLE_SELECT" ||
+      effectiveCurrentQuestion?.questionType === "TRUE_FALSE"
+    ) {
+      // Single-select and true/false - replace selection and auto-submit
       newSelected.clear();
       newSelected.add(answerId);
       // Emit power-ups before submitting answer
@@ -661,6 +716,65 @@ export default function PlayerGamePage({
     // Emit power-ups before submitting answer
     emitPowerUps(effectiveCurrentQuestion.id);
     submitAnswer(effectiveCurrentQuestion.id, Array.from(selectedAnswers));
+    setHasSubmitted(true);
+  }
+
+  // --- CATEGORISE player handlers ---
+  function selectCategoriseAssignment(itemId: string, categoryId: string) {
+    if (hasSubmitted) return;
+    setCategoriseSelection((prev) => ({ ...prev, [itemId]: categoryId }));
+  }
+
+  function handleSubmitCategorise() {
+    if (!effectiveCurrentQuestion || hasSubmitted) return;
+    const data =
+      structuredContent?.type === "CATEGORISE" ? structuredContent.data : null;
+    if (!data) return;
+    // Require every item to be assigned before submitting.
+    const allAssigned = data.items.every(
+      (item) => categoriseSelection[item.id]
+    );
+    if (!allAssigned) return;
+    // Build assignment ids in the format the server expects: "itemId:categoryId".
+    const assignmentIds = data.items.map((item) =>
+      categoriseAssignmentId(item.id, categoriseSelection[item.id])
+    );
+    emitPowerUps(effectiveCurrentQuestion.id);
+    submitAnswer(effectiveCurrentQuestion.id, assignmentIds);
+    setHasSubmitted(true);
+  }
+
+  // --- MATCHING player handlers ---
+  function selectMatchingAssignment(leftId: string, rightId: string) {
+    if (hasSubmitted) return;
+    setMatchingSelection((prev) => {
+      const next = { ...prev };
+      // Enforce one-to-one: if this rightId is already used by another left,
+      // clear that other left's assignment.
+      for (const [l, r] of Object.entries(next)) {
+        if (r === rightId && l !== leftId) {
+          delete next[l];
+        }
+      }
+      next[leftId] = rightId;
+      return next;
+    });
+  }
+
+  function handleSubmitMatching() {
+    if (!effectiveCurrentQuestion || hasSubmitted) return;
+    const data =
+      structuredContent?.type === "MATCHING" ? structuredContent.data : null;
+    if (!data) return;
+    const allAssigned = data.pairs.every(
+      (pair) => matchingSelection[pair.leftId]
+    );
+    if (!allAssigned) return;
+    const assignmentIds = data.pairs.map((pair) =>
+      matchingAssignmentId(pair.leftId, matchingSelection[pair.leftId])
+    );
+    emitPowerUps(effectiveCurrentQuestion.id);
+    submitAnswer(effectiveCurrentQuestion.id, assignmentIds);
     setHasSubmitted(true);
   }
 
@@ -1663,8 +1777,12 @@ export default function PlayerGamePage({
             </div>
           )}
 
-          {/* Answers */}
-          <div className="flex-1 px-3 sm:px-8 py-3 sm:py-4 space-y-2 sm:space-y-3">
+          {/* Answers (for SINGLE/MULTI/TRUE_FALSE question types) */}
+          {effectiveCurrentQuestion &&
+            (effectiveCurrentQuestion.questionType === "SINGLE_SELECT" ||
+              effectiveCurrentQuestion.questionType === "MULTI_SELECT" ||
+              effectiveCurrentQuestion.questionType === "TRUE_FALSE") && (
+            <div className="flex-1 px-3 sm:px-8 py-3 sm:py-4 space-y-2 sm:space-y-3">
             {effectiveCurrentQuestion?.answers.map((answer, index) => {
               const isSelected = selectedAnswers.has(answer.id);
               const isCorrect = correctIds.includes(answer.id);
@@ -1762,7 +1880,171 @@ export default function PlayerGamePage({
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
+
+          {/* CATEGORISE player UI */}
+          {effectiveCurrentQuestion?.questionType === "CATEGORISE" &&
+            structuredContent?.type === "CATEGORISE" && (
+              <div className="flex-1 px-3 sm:px-8 py-3 sm:py-4 space-y-3">
+                {structuredContent.data.categories.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {structuredContent.data.categories.map((cat) => (
+                      <span
+                        key={cat.id}
+                        className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium"
+                      >
+                        {cat.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {structuredContent.data.items.map((item, idx) => {
+                  const selectedCat = categoriseSelection[item.id];
+                  const correctCat =
+                    questionEnded?.correctCategorise?.[item.id];
+                  const isCorrectAssignment =
+                    isRevealing && correctCat && selectedCat === correctCat;
+                  const isWrongAssignment =
+                    isRevealing &&
+                    correctCat &&
+                    selectedCat &&
+                    selectedCat !== correctCat;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`rounded-lg border p-3 space-y-2 ${
+                        isCorrectAssignment
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                          : isWrongAssignment
+                            ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                            : "border-border"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium flex-1">{item.label}</span>
+                        {isRevealing && isCorrectAssignment && (
+                          <Check className="w-5 h-5 text-green-600 shrink-0" />
+                        )}
+                        {isRevealing && isWrongAssignment && (
+                          <X className="w-5 h-5 text-red-600 shrink-0" />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {structuredContent.data.categories.map((cat) => {
+                          const selected = selectedCat === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              disabled={hasSubmitted || isRevealing}
+                              onClick={() =>
+                                selectCategoriseAssignment(item.id, cat.id)
+                              }
+                              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background border-border hover:bg-accent"
+                              } ${isRevealing && correctCat === cat.id ? "ring-2 ring-green-500" : ""}`}
+                            >
+                              {cat.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {isRevealing && isWrongAssignment && correctCat && (
+                        <p className="text-xs text-green-600">
+                          {t("player.correctCategoryWas")}:{" "}
+                          <strong>
+                            {structuredContent.data.categories.find(
+                              (c) => c.id === correctCat
+                            )?.label || correctCat}
+                          </strong>
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+                {!hasSubmitted && !isRevealing && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {t("player.categoriseAssignAll")}
+                  </p>
+                )}
+              </div>
+            )}
+
+          {/* MATCHING player UI */}
+          {effectiveCurrentQuestion?.questionType === "MATCHING" &&
+            structuredContent?.type === "MATCHING" && (
+              <div className="flex-1 px-3 sm:px-8 py-3 sm:py-4 space-y-2">
+                {structuredContent.data.pairs.map((pair, idx) => {
+                  const selectedRight = matchingSelection[pair.leftId];
+                  const correctRight =
+                    questionEnded?.correctMatching?.[pair.leftId];
+                  const isCorrectMatch =
+                    isRevealing && correctRight && selectedRight === correctRight;
+                  const isWrongMatch =
+                    isRevealing &&
+                    correctRight &&
+                    selectedRight &&
+                    selectedRight !== correctRight;
+                  return (
+                    <div
+                      key={pair.leftId}
+                      className={`flex items-center gap-2 rounded-lg border p-2 ${
+                        isCorrectMatch
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                          : isWrongMatch
+                            ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                            : "border-border"
+                      }`}
+                    >
+                      <span className="font-medium flex-1 text-left">
+                        {pair.leftLabel}
+                      </span>
+                      <span className="text-muted-foreground text-sm">→</span>
+                      <select
+                        value={selectedRight || ""}
+                        disabled={hasSubmitted || isRevealing}
+                        onChange={(e) =>
+                          selectMatchingAssignment(pair.leftId, e.target.value)
+                        }
+                        className={`h-10 rounded-md border bg-background px-2 text-sm flex-1 ${
+                          isRevealing && correctRight && selectedRight !== correctRight
+                            ? "border-red-500"
+                            : ""
+                        }`}
+                      >
+                        <option value="">
+                          {t("player.selectMatch")}
+                        </option>
+                        {structuredContent.data.pairs.map((p) => (
+                          <option key={p.rightId} value={p.rightId}>
+                            {p.rightLabel}
+                          </option>
+                        ))}
+                      </select>
+                      {isRevealing && isCorrectMatch && (
+                        <Check className="w-5 h-5 text-green-600 shrink-0" />
+                      )}
+                      {isRevealing && isWrongMatch && correctRight && (
+                        <span className="text-xs text-green-600 shrink-0 max-w-[40%]">
+                          {t("player.correctMatchWas")}:{" "}
+                          {structuredContent.data.pairs.find(
+                            (pp) => pp.rightId === correctRight
+                          )?.rightLabel || correctRight}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+                {!hasSubmitted && !isRevealing && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    {t("player.matchAllPairs")}
+                  </p>
+                )}
+              </div>
+            )}
 
           {/* Submit button for multi-select */}
           {effectiveCurrentQuestion?.questionType === "MULTI_SELECT" &&
@@ -1776,6 +2058,56 @@ export default function PlayerGamePage({
                   className="w-full"
                 >
                   {t("player.submitAnswer", { count: selectedAnswers.size })}
+                </Button>
+              </div>
+            )}
+
+          {/* Submit button for CATEGORISE */}
+          {effectiveCurrentQuestion?.questionType === "CATEGORISE" &&
+            structuredContent?.type === "CATEGORISE" &&
+            !hasSubmitted &&
+            !isRevealing && (
+              <div className="px-8 py-4 border-t">
+                <Button
+                  onClick={handleSubmitCategorise}
+                  disabled={
+                    !structuredContent.data.items.every(
+                      (item) => categoriseSelection[item.id]
+                    )
+                  }
+                  size="lg"
+                  className="w-full"
+                >
+                  {t("player.submitAnswer", {
+                    count: structuredContent.data.items.filter(
+                      (item) => categoriseSelection[item.id]
+                    ).length,
+                  })}
+                </Button>
+              </div>
+            )}
+
+          {/* Submit button for MATCHING */}
+          {effectiveCurrentQuestion?.questionType === "MATCHING" &&
+            structuredContent?.type === "MATCHING" &&
+            !hasSubmitted &&
+            !isRevealing && (
+              <div className="px-8 py-4 border-t">
+                <Button
+                  onClick={handleSubmitMatching}
+                  disabled={
+                    !structuredContent.data.pairs.every(
+                      (pair) => matchingSelection[pair.leftId]
+                    )
+                  }
+                  size="lg"
+                  className="w-full"
+                >
+                  {t("player.submitAnswer", {
+                    count: structuredContent.data.pairs.filter(
+                      (pair) => matchingSelection[pair.leftId]
+                    ).length,
+                  })}
                 </Button>
               </div>
             )}

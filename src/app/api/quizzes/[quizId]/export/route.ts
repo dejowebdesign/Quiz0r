@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import JSZip from "jszip";
 import { ExportedQuiz } from "@/types/export";
 import { requireAdmin } from "@/lib/auth";
+import { parseCategoriseData, parseMatchingData } from "@/lib/question-types";
 
 interface RouteParams {
   params: Promise<{ quizId: string }>;
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         questions: {
           include: {
             translations: true,
+            contentTranslations: true,
             answers: {
               include: {
                 translations: true,
@@ -91,11 +93,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           })
         );
 
+        // Parse structured content for the extended question types.
+        const categoriseData = parseCategoriseData(question.categoriseData);
+        const matchingData = parseMatchingData(question.matchingData);
+
         return {
           questionText: question.questionText,
           imageRef,
           hostNotes: question.hostNotes,
-          questionType: question.questionType as "SINGLE_SELECT" | "MULTI_SELECT" | "SECTION",
+          questionType: question.questionType as "SINGLE_SELECT" | "MULTI_SELECT" | "TRUE_FALSE" | "CATEGORISE" | "MATCHING" | "SECTION",
           timeLimit: question.timeLimit,
           points: question.points,
           orderIndex: question.orderIndex,
@@ -112,13 +118,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             easterEggButtonText: t.easterEggButtonText,
           })) ?? [],
           answers: exportedAnswers,
+          categoriseData: categoriseData ?? null,
+          matchingData: matchingData ?? null,
+          contentTranslations: question.contentTranslations?.map((t) => ({
+            languageCode: t.languageCode,
+            contentData: t.contentData,
+          })) ?? [],
         };
       })
     );
 
     // 4. Create quiz.json
     const exportData: ExportedQuiz = {
-      exportVersion: "1.1",
+      exportVersion: "1.2",
       exportedAt: new Date().toISOString(),
       title: quiz.title,
       description: quiz.description,

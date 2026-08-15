@@ -156,7 +156,12 @@
     "you": "You",
     "submitAnswer": "Submit Answer ({count} selected)",
     "clicked": "Clicked!",
-    "waitingForTime": "Waiting for time to expire..."
+    "waitingForTime": "Waiting for time to expire...",
+    "categoriseAssignAll": "Assign every item to a category to submit",
+    "matchAllPairs": "Match every pair to submit",
+    "selectMatch": "Select a match",
+    "correctCategoryWas": "Correct category",
+    "correctMatchWas": "Correct match"
   },
   "host": {
     "waitingForPlayers": "Waiting for players",
@@ -236,7 +241,15 @@
     "emptyWaiting": "Waiting for state",
     "player": "Player",
     "upNext": "Up Next",
-    "upNextQuestion": "Up Next (Q{current} of {total})"
+    "upNextQuestion": "Up Next (Q{current} of {total})",
+    "trueFalse": "True/False",
+    "categorise": "Categorise",
+    "matching": "Matching",
+    "correctCategory": "Correct category",
+    "assignToCategory": "Assign to a category",
+    "correctMatch": "Correct match",
+    "matchWith": "Match with an item",
+    "correct": "correct"
   },
   "admin": {
     "quizzes": "Quizzes",
@@ -540,7 +553,30 @@
       "translationPlaceholder": "{name} translation...",
       "deleteTranslation": "Delete translation",
       "title": "Title",
-      "description": "Description"
-    }
+      "description": "Description",
+      "typeSingle": "Single",
+      "typeMulti": "Multi",
+      "typeTrueFalse": "True/False",
+      "typeCategorise": "Categorise",
+      "typeMatching": "Matching",
+      "categories": "Categories",
+      "items": "Items",
+      "addCategory": "Add category",
+      "addItem": "Add item",
+      "categoryN": "Category {n}",
+      "itemN": "Item {n}",
+      "selectCategory": "Select category",
+      "pairs": "Pairs",
+      "addPair": "Add pair",
+      "leftN": "Left {n}",
+      "rightN": "Right {n}",
+      "multiSelectHint": "Multiple answers can be marked as correct. Players get partial credit for each correct answer selected.",
+      "trueFalseHint": "Mark either True or False as the correct answer.",
+      "singleSelectHint": "Mark exactly one answer as correct.",
+      "categoriseHint": "Assign each item to the correct category. Players get partial credit for each correct assignment.",
+      "matchingHint": "Match each left item with the correct right item. Players get partial credit for each correct pair."
+    },
+    "categoriseInvalid": "Categorise data is incomplete or invalid",
+    "matchingInvalid": "Matching data is incomplete or invalid"
   }
 }
