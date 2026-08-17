@@ -354,8 +354,23 @@ export default function PlayerGamePage({
   // Resolve the structured content for the current question. The server sends
   // a player-safe copy (correct answers stripped). If a translation exists for
   // the selected language we use the translated labels; otherwise the source.
+  //
+  // The player-safe MATCHING data includes a random right-column shuffle. To
+  // avoid the right column re-shuffling (and visually jumping) on every
+  // game:state broadcast — which re-renders this component with a fresh
+  // effectiveCurrentQuestion reference — cache the computed safe data per
+  // (questionId + language) so the shuffle is stable for the lifetime of a
+  // question. CATEGORISE data is idempotent (category ids stripped) but is
+  // cached the same way for consistency.
+  const structuredSafeCache = useRef<
+    Map<string, { type: "CATEGORISE"; data: CategoriseData } | { type: "MATCHING"; data: MatchingData } | null>
+  >(new Map());
   const structuredContent = useMemo(() => {
     if (!effectiveCurrentQuestion) return null;
+    const cacheKey = `${effectiveCurrentQuestion.id}|${selectedLanguage}`;
+    const cached = structuredSafeCache.current.get(cacheKey);
+    if (cached) return cached;
+
     const qt = effectiveCurrentQuestion.questionType;
     const translations = effectiveCurrentQuestion.translations;
     const translatedForLang =
@@ -363,23 +378,35 @@ export default function PlayerGamePage({
         | { categoriseData?: CategoriseData; matchingData?: MatchingData }
         | undefined;
 
+    let result:
+      | { type: "CATEGORISE"; data: CategoriseData }
+      | { type: "MATCHING"; data: MatchingData }
+      | null = null;
+
     if (isCategoriseType(qt)) {
       const base = translatedForLang?.categoriseData
         ? translatedForLang.categoriseData
         : parseCategoriseData(effectiveCurrentQuestion.categoriseData);
-      if (!base) return null;
+      if (!base) {
+        structuredSafeCache.current.set(cacheKey, null);
+        return null;
+      }
       // Re-apply player-safe sanitization to the translated content in case
       // translation preserved the category mapping (it should have).
-      return { type: "CATEGORISE" as const, data: playerSafeCategoriseData(base) };
-    }
-    if (isMatchingType(qt)) {
+      result = { type: "CATEGORISE" as const, data: playerSafeCategoriseData(base) };
+    } else if (isMatchingType(qt)) {
       const base = translatedForLang?.matchingData
         ? translatedForLang.matchingData
         : parseMatchingData(effectiveCurrentQuestion.matchingData);
-      if (!base) return null;
-      return { type: "MATCHING" as const, data: playerSafeMatchingData(base) };
+      if (!base) {
+        structuredSafeCache.current.set(cacheKey, null);
+        return null;
+      }
+      result = { type: "MATCHING" as const, data: playerSafeMatchingData(base) };
     }
-    return null;
+
+    structuredSafeCache.current.set(cacheKey, result);
+    return result;
   }, [effectiveCurrentQuestion, selectedLanguage]);
 
   const monitorViewState = useMemo<PlayerViewState | null>(() => {
