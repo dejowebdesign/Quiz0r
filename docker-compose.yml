@@ -13,6 +13,14 @@ services:
     ports:
       - "18081:3000"
 
+    networks:
+      - portainer_bridge # Verbindet den Container mit dem Netzwerk unten
+
+    networks:
+       portainer_bridge:
+          name: bridge # Der echte Name des Standard-Netzwerks in Docker/Portainer
+          external: true 
+
     environment:
       NODE_ENV: production
       DATABASE_URL: file:./prisma/data/quiz.db
