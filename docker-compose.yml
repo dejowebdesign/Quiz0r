@@ -4,12 +4,8 @@ services:
   quiz0r:
     container_name: quiz0r
 
-    image: quiz0r:latest
-    pull_policy: build
-
-    build:
-      context: .
-      target: runner
+    image: ghcr.io/dejowebdesign/quiz0r:latest
+    pull_policy: always
 
     restart: unless-stopped
 
@@ -18,14 +14,8 @@ services:
 
     environment:
       NODE_ENV: production
-
-      # SQLite
       DATABASE_URL: file:./prisma/data/quiz.db
-
-      # OpenAI
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-
-      # FreeLLMAPI
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
 
     volumes:
