@@ -1,35 +1,43 @@
+version: "3.9"
+
 services:
   quiz0r:
     container_name: quiz0r
 
+    image: quiz0r:latest
+
     build:
       context: .
       target: runner
-
-    image: quiz0r:latest
 
     restart: unless-stopped
 
     ports:
       - "18081:3000"
 
-    networks:
-      - portainer_bridge
-
     environment:
       NODE_ENV: production
+
+      # SQLite
       DATABASE_URL: file:./prisma/data/quiz.db
-      TZ: Europe/Berlin
+
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # FreeLLMAPI
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
 
     volumes:
-      - quiz-data:/app/prisma/data
-      - quiz-uploads:/app/public/uploads
+      - quiz0r-db:/app/prisma/data
+      - quiz0r-uploads:/app/public/uploads
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
-  quiz-data:
-  quiz-uploads:
-
-networks:
-  portainer_bridge:
-    name: bridge
-    external: true
+  quiz0r-db:
+  quiz0r-uploads:
