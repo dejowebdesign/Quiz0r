@@ -5,6 +5,7 @@ services:
     container_name: quiz0r
 
     image: quiz0r:latest
+    pull_policy: build
 
     build:
       context: .
